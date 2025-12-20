@@ -1,33 +1,24 @@
-/***********************
- * Cloud Notepad FINAL
- * app.v4.js
- ***********************/
+/*********************************
+ * Cloud Notepad - FINAL app.js
+ * Backend: Render
+ *********************************/
 
-let notes = [];          // index list
+const BACKEND = "https://notepad-backend-n5nc.onrender.com";
+
+let notes = [];
 let activeId = null;
 let autoSaveTimer = null;
 
-const apiBase =
-  `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${NOTES_FOLDER}`;
-
-const encode = (d) =>
-  btoa(unescape(encodeURIComponent(JSON.stringify(d))));
-const decode = (d) =>
-  JSON.parse(decodeURIComponent(escape(atob(d))));
-
-/* ================= LOAD ================= */
+/* ================= LOAD ALL NOTES ================= */
 async function loadNotes() {
   try {
-    const r = await fetch(`${apiBase}/index.json`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    });
-    const f = await r.json();
-    notes = decode(f.content);
+    const r = await fetch(`${BACKEND}/api/index`);
+    notes = await r.json();
     if (!Array.isArray(notes)) notes = [];
-  } catch {
-    notes = [];
+    renderSidebar();
+  } catch (e) {
+    alert("Backend not reachable");
   }
-  renderSidebar();
 }
 
 /* ================= SIDEBAR ================= */
@@ -36,128 +27,91 @@ function renderSidebar() {
   list.innerHTML = "";
 
   notes.forEach(n => {
-    const d = document.createElement("div");
-    d.className = "note-item" + (n.id === activeId ? " active" : "");
-    d.innerHTML = `
+    const div = document.createElement("div");
+    div.className = "note-item" + (n.id === activeId ? " active" : "");
+    div.innerHTML = `
       <h4>${n.title || "Untitled"}</h4>
       <p style="font-size:11px">${n.updated || ""}</p>
     `;
-    d.onclick = () => openNote(n.id);
-    list.appendChild(d);
+    div.onclick = () => openNote(n.id);
+    list.appendChild(div);
   });
 }
 
-/* ================= CREATE NOTE ================= */
-async function createNote() {
+/* ================= ADD NEW NOTE ================= */
+function addNewNote() {
   const id = "note-" + Date.now();
+  const now = new Date().toLocaleString();
 
-  const noteFile = {
+  const note = {
     id,
     title: "",
     content: "",
-    updated: new Date().toLocaleString()
+    updated: now
   };
 
-  // index entry
-  notes.unshift({
-    id,
-    title: "",
-    updated: noteFile.updated
-  });
-
+  notes.unshift({ id, title: "", updated: now });
   activeId = id;
 
-  // create note file
-  await fetch(`${apiBase}/${id}.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "create note",
-      content: encode(noteFile)
-    })
-  });
-
-  await updateIndex();
-  renderSidebar();
-}
-
-/* ================= ADD NOTE ================= */
-async function addNewNote() {
-  await createNote();
   document.getElementById("note-title").value = "";
   document.getElementById("rich-editor").innerHTML = "";
-  document.getElementById("note-title").focus();
+  renderSidebar();
+
+  saveToServer(note);
 }
 
 /* ================= OPEN NOTE ================= */
 async function openNote(id) {
-  activeId = id;
+  try {
+    activeId = id;
+    const r = await fetch(`${BACKEND}/api/note/${id}`);
+    const note = await r.json();
 
-  const r = await fetch(`${apiBase}/${id}.json`, {
-    headers: { Authorization: `token ${GITHUB_TOKEN}` }
-  });
-  const f = await r.json();
-  const note = decode(f.content);
+    document.getElementById("note-title").value = note.title || "";
+    document.getElementById("rich-editor").innerHTML = note.content || "";
 
-  document.getElementById("note-title").value = note.title || "";
-  document.getElementById("rich-editor").innerHTML = note.content || "";
-
-  renderSidebar();
+    renderSidebar();
+  } catch {
+    alert("Failed to load note");
+  }
 }
 
-/* ================= SAVE (CORE) ================= */
-async function saveCurrentNote(showAlert = false) {
-  if (!activeId) await createNote();
-
-  const title = document.getElementById("note-title").value.trim();
-  const content = document.getElementById("rich-editor").innerHTML;
-
-  const r = await fetch(`${apiBase}/${activeId}.json`, {
-    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+/* ================= SAVE TO SERVER ================= */
+async function saveToServer(note) {
+  await fetch(`${BACKEND}/api/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(note)
   });
-  const f = await r.json();
-
-  const noteFile = {
-    id: activeId,
-    title: title || "Untitled",
-    content,
-    updated: new Date().toLocaleString()
-  };
-
-  // save note file
-  await fetch(`${apiBase}/${activeId}.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "save note",
-      content: encode(noteFile),
-      sha: f.sha
-    })
-  });
-
-  // update index entry
-  const i = notes.findIndex(n => n.id === activeId);
-  notes[i] = {
-    id: activeId,
-    title: noteFile.title,
-    updated: noteFile.updated
-  };
-
-  await updateIndex();
-  renderSidebar();
-
-  if (showAlert) alert("Saved to cloud ✅");
 }
 
 /* ================= MANUAL SAVE ================= */
 function saveNote() {
-  saveCurrentNote(true);
+  if (!activeId) {
+    alert("No note selected");
+    return;
+  }
+
+  const title = document.getElementById("note-title").value.trim();
+  const content = document.getElementById("rich-editor").innerHTML;
+  const updated = new Date().toLocaleString();
+
+  const note = {
+    id: activeId,
+    title: title || "Untitled",
+    content,
+    updated
+  };
+
+  const i = notes.findIndex(n => n.id === activeId);
+  if (i !== -1) {
+    notes[i] = { id: activeId, title: note.title, updated };
+  }
+
+  renderSidebar();
+  saveToServer(note);
+
+  alert("Saved to cloud ☁️");
 }
 
 /* ================= AUTO SAVE ================= */
@@ -168,36 +122,36 @@ function setupAutoSave() {
   function triggerAutoSave() {
     clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => {
-      saveCurrentNote(false);
-    }, 1500);
+      if (activeId) saveNoteSilently();
+    }, 1200);
   }
 
   title.addEventListener("input", triggerAutoSave);
   editor.addEventListener("input", triggerAutoSave);
 }
 
-/* ================= UPDATE INDEX ================= */
-async function updateIndex() {
-  const r = await fetch(`${apiBase}/index.json`, {
-    headers: { Authorization: `token ${GITHUB_TOKEN}` }
-  });
-  const f = await r.json();
+function saveNoteSilently() {
+  const title = document.getElementById("note-title").value.trim();
+  const content = document.getElementById("rich-editor").innerHTML;
+  const updated = new Date().toLocaleString();
 
-  await fetch(`${apiBase}/index.json`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "update notes index",
-      content: encode(notes),
-      sha: f.sha
-    })
-  });
+  const note = {
+    id: activeId,
+    title: title || "Untitled",
+    content,
+    updated
+  };
+
+  const i = notes.findIndex(n => n.id === activeId);
+  if (i !== -1) {
+    notes[i] = { id: activeId, title: note.title, updated };
+  }
+
+  renderSidebar();
+  saveToServer(note);
 }
 
-/* ================= FIND ================= */
+/* ================= FIND TEXT ================= */
 function toggleFind() {
   const box = document.getElementById("findBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
@@ -205,26 +159,26 @@ function toggleFind() {
 
 function findText() {
   const q = document.getElementById("findInput").value;
-  const ed = document.getElementById("rich-editor");
-  const text = ed.innerText;
+  const editor = document.getElementById("rich-editor");
 
   if (q.length < 2) {
-    ed.innerHTML = text;
+    editor.innerHTML = editor.innerText;
     return;
   }
-  ed.innerHTML = text.replaceAll(
+
+  editor.innerHTML = editor.innerText.replaceAll(
     q,
     `<span class="find-highlight">${q}</span>`
   );
 }
 
-/* ================= FORMAT ================= */
+/* ================= TEXT FORMAT ================= */
 function applyFormat(cmd) {
   document.execCommand(cmd, false, null);
   document.getElementById("rich-editor").focus();
 }
 
-/* ================= MOBILE ================= */
+/* ================= MOBILE SIDEBAR ================= */
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("mobileOverlay").classList.toggle("active");

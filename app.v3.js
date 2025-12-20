@@ -4,10 +4,13 @@ let activeId = null;
 const apiBase =
   `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${NOTES_FOLDER}`;
 
-const encode = d => btoa(unescape(encodeURIComponent(JSON.stringify(d)))));
-const decode = d => JSON.parse(decodeURIComponent(escape(atob(d))));
+// ✅ FIXED (NO EXTRA BRACKET)
+const encode = (d) =>
+  btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+const decode = (d) =>
+  JSON.parse(decodeURIComponent(escape(atob(d))));
 
-/* ---------------- LOAD ---------------- */
+/* ================= LOAD NOTES ================= */
 async function loadNotes() {
   try {
     const r = await fetch(`${apiBase}/index.json`, {
@@ -16,13 +19,13 @@ async function loadNotes() {
     const f = await r.json();
     notes = decode(f.content);
     if (!Array.isArray(notes)) notes = [];
-  } catch {
+  } catch (e) {
     notes = [];
   }
   renderSidebar();
 }
 
-/* ---------------- SIDEBAR ---------------- */
+/* ================= SIDEBAR ================= */
 function renderSidebar() {
   const list = document.getElementById("notesList");
   list.innerHTML = "";
@@ -35,7 +38,7 @@ function renderSidebar() {
   });
 }
 
-/* ---------------- CREATE NOTE ---------------- */
+/* ================= CREATE NOTE ================= */
 async function createNote() {
   const id = "note-" + Date.now();
   const note = { id, title: "", content: "" };
@@ -58,14 +61,15 @@ async function createNote() {
   renderSidebar();
 }
 
-/* ---------------- ADD NOTE ---------------- */
+/* ================= ADD NOTE ================= */
 async function addNewNote() {
   await createNote();
   document.getElementById("note-title").value = "";
   document.getElementById("rich-editor").innerHTML = "";
+  document.getElementById("note-title").focus();
 }
 
-/* ---------------- OPEN NOTE ---------------- */
+/* ================= OPEN NOTE ================= */
 async function openNote(id) {
   activeId = id;
   const r = await fetch(`${apiBase}/${id}.json`, {
@@ -73,12 +77,13 @@ async function openNote(id) {
   });
   const f = await r.json();
   const n = decode(f.content);
+
   document.getElementById("note-title").value = n.title || "";
   document.getElementById("rich-editor").innerHTML = n.content || "";
   renderSidebar();
 }
 
-/* ---------------- SAVE NOTE ---------------- */
+/* ================= SAVE NOTE ================= */
 async function saveNote() {
   if (!activeId) await createNote();
 
@@ -113,7 +118,7 @@ async function saveNote() {
   alert("Saved to cloud ✅");
 }
 
-/* ---------------- UPDATE INDEX (CRITICAL) ---------------- */
+/* ================= UPDATE INDEX ================= */
 async function updateIndex() {
   const r = await fetch(`${apiBase}/index.json`, {
     headers: { Authorization: `token ${GITHUB_TOKEN}` }
@@ -134,5 +139,38 @@ async function updateIndex() {
   });
 }
 
-/* ---------------- INIT ---------------- */
+/* ================= FIND ================= */
+function toggleFind() {
+  const box = document.getElementById("findBox");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+}
+
+function findText() {
+  const q = document.getElementById("findInput").value;
+  const ed = document.getElementById("rich-editor");
+  const text = ed.innerText;
+
+  if (q.length < 2) {
+    ed.innerHTML = text;
+    return;
+  }
+  ed.innerHTML = text.replaceAll(
+    q,
+    `<span class="find-highlight">${q}</span>`
+  );
+}
+
+/* ================= FORMAT ================= */
+function applyFormat(cmd) {
+  document.execCommand(cmd, false, null);
+  document.getElementById("rich-editor").focus();
+}
+
+/* ================= MOBILE ================= */
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("mobileOverlay").classList.toggle("active");
+}
+
+/* ================= INIT ================= */
 loadNotes();

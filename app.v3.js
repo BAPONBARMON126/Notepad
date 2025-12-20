@@ -31,7 +31,7 @@ pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR (MOBILE)
+   SIDEBAR (MOBILE TOGGLE)
 ========================================================= */
 
 function toggleSidebar() {
@@ -40,7 +40,7 @@ function toggleSidebar() {
 }
 
 /* =========================================================
-   LOAD NOTES LIST
+   LOAD NOTES LIST ON PAGE LOAD
 ========================================================= */
 
 async function loadNotes() {
@@ -49,7 +49,7 @@ async function loadNotes() {
     notes = await r.json();
     renderNotesList();
   } catch {
-    console.error("Failed to load notes");
+    console.error("Failed to load notes list");
   }
 }
 
@@ -72,26 +72,22 @@ function renderNotesList() {
     div.style.justifyContent = "space-between";
     div.style.alignItems = "center";
 
-    /* Left side (title + date) */
     const info = document.createElement("div");
     info.innerHTML = `
       <strong>${note.title || "Untitled"}</strong><br>
       <small>${note.updated || ""}</small>
     `;
 
-    /* Delete icon */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
     del.title = "Delete note";
 
-    // delete click (STOP open)
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
     };
 
-    // open note on click anywhere else
     div.onclick = () => openNote(note.id);
 
     div.appendChild(info);
@@ -126,7 +122,7 @@ function addNewNote() {
 }
 
 /* =========================================================
-   OPEN NOTE
+   OPEN NOTE (AUTO CLOSE SIDEBAR ON MOBILE)
 ========================================================= */
 
 async function openNote(id) {
@@ -141,6 +137,13 @@ async function openNote(id) {
 
     renderNotesList();
     document.getElementById("rich-editor").focus();
+
+    /* 📱 Auto close sidebar on mobile */
+    if (window.innerWidth <= 768) {
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("mobileOverlay").classList.remove("active");
+    }
+
   } catch {
     alert("Failed to load note");
   }
@@ -270,12 +273,14 @@ function removeHighlights() {
 }
 
 /* =========================================================
-   CLOSE FIND ON OUTSIDE CLICK
+   CLOSE FIND BOX ON OUTSIDE CLICK
 ========================================================= */
 
 document.addEventListener("click", e => {
-  if (!e.target.closest(".find-box") &&
-      !e.target.closest(".fa-magnifying-glass")) {
+  if (
+    !e.target.closest(".find-box") &&
+    !e.target.closest(".fa-magnifying-glass")
+  ) {
     document.getElementById("findBox").style.display = "none";
   }
 });

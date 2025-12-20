@@ -96,6 +96,7 @@ body{
 .toolbar{
   display:flex;
   gap:8px;
+  align-items:center;
 }
 
 .icon-btn{
@@ -112,6 +113,36 @@ body{
 
 .icon-btn:hover{
   background:#e1f5fe;
+}
+
+/* ================= CONNECTION INDICATOR (UPDATED) ================= */
+#conn-indicator{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-right:6px;
+  font-size:12px;
+}
+
+/* 🔄 connecting */
+.conn-spinner{
+  border:3px solid #aaa;
+  border-top:3px solid #00c853;
+  animation:spin 1s linear infinite;
+}
+
+/* 🟢 connected */
+.conn-online{
+  background:#00c853;
+  color:#fff;
+  box-shadow:0 0 8px #00c853;
+}
+
+@keyframes spin{
+  to{ transform:rotate(360deg); }
 }
 
 #note-title{
@@ -198,9 +229,14 @@ body{
       </div>
 
       <div class="toolbar">
+
+        <!-- 🔴 Indicator LEFT of search -->
+        <span id="conn-indicator" class="conn-spinner"></span>
+
         <div class="icon-btn" onclick="toggleFind()">
           <i class="fa-solid fa-magnifying-glass"></i>
         </div>
+
         <div class="icon-btn" onclick="applyFormat('bold')"><b>B</b></div>
         <div class="icon-btn" onclick="applyFormat('italic')"><i>I</i></div>
         <div class="icon-btn" onclick="applyFormat('underline')"><u>U</u></div>
@@ -224,7 +260,6 @@ body{
 
 </div>
 
-<!-- ================= SCRIPTS ================= -->
 <script src="config.js"></script>
 <script src="app.v3.js"></script>
 

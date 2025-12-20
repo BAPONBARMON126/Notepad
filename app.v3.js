@@ -9,7 +9,7 @@ let activeNoteId = null;
 let autoSaveTimer = null;
 
 /* =========================================================
-   CONNECTION INDICATOR
+   CONNECTION INDICATOR (unchanged)
 ========================================================= */
 
 const indicator = document.getElementById("conn-indicator");
@@ -18,12 +18,10 @@ async function pingBackend() {
   try {
     indicator.className = "conn-spinner";
     indicator.innerHTML = "";
-
     await fetch(BACKEND_URL + "/", { cache: "no-store" });
-
     indicator.className = "conn-online";
     indicator.innerHTML = "✓";
-  } catch (e) {
+  } catch {
     indicator.className = "conn-spinner";
     indicator.innerHTML = "";
   }
@@ -42,7 +40,7 @@ function toggleSidebar() {
 }
 
 /* =========================================================
-   LOAD NOTES LIST
+   LOAD NOTES LIST ON START
 ========================================================= */
 
 async function loadNotes() {
@@ -50,8 +48,8 @@ async function loadNotes() {
     const r = await fetch(BACKEND_URL + "/api/index");
     notes = await r.json();
     renderNotesList();
-  } catch (e) {
-    console.error("Failed to load notes list");
+  } catch {
+    console.error("Failed to load notes");
   }
 }
 
@@ -67,37 +65,44 @@ function renderNotesList() {
 
   notes.forEach(note => {
     const div = document.createElement("div");
-    div.className = "note-item" + (note.id === activeNoteId ? " active" : "");
+    div.className =
+      "note-item" + (note.id === activeNoteId ? " active" : "");
+
     div.innerHTML = `
       <strong>${note.title || "Untitled"}</strong><br>
       <small>${note.updated || ""}</small>
     `;
+
     div.onclick = () => openNote(note.id);
     list.appendChild(div);
   });
 }
 
 /* =========================================================
-   ADD NEW NOTE
+   ADD NEW NOTE (TITLE FIRST LOGIC)
 ========================================================= */
 
 function addNewNote() {
+  const title = prompt("Enter note title");
+
+  if (!title || !title.trim()) return;
+
   const id = "note-" + Date.now();
   const now = new Date().toLocaleString();
 
-  notes.unshift({
+  const newNoteMeta = {
     id,
-    title: "",
+    title: title.trim(),
     updated: now
-  });
+  };
 
+  notes.unshift(newNoteMeta);
   activeNoteId = id;
 
-  document.getElementById("note-title").value = "";
+  document.getElementById("note-title").value = title.trim();
   document.getElementById("rich-editor").innerHTML = "";
 
   renderNotesList();
-  saveNote();
 }
 
 /* =========================================================
@@ -116,17 +121,20 @@ async function openNote(id) {
 
     renderNotesList();
     document.getElementById("rich-editor").focus();
-  } catch (e) {
+  } catch {
     alert("Failed to load note");
   }
 }
 
 /* =========================================================
-   SAVE NOTE
+   SAVE NOTE (MANUAL + POPUP)
 ========================================================= */
 
-function saveNote() {
-  if (!activeNoteId) return;
+function saveNote(showAlert = true) {
+  if (!activeNoteId) {
+    alert("No note selected");
+    return;
+  }
 
   const title = document.getElementById("note-title").value;
   const content = document.getElementById("rich-editor").innerHTML;
@@ -152,15 +160,19 @@ function saveNote() {
   });
 
   renderNotesList();
+
+  if (showAlert) {
+    alert("✅ Note saved successfully");
+  }
 }
 
 /* =========================================================
-   AUTO SAVE
+   AUTO SAVE (NO POPUP)
 ========================================================= */
 
 function autoSave() {
   clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(saveNote, 1200);
+  autoSaveTimer = setTimeout(() => saveNote(false), 1200);
 }
 
 document.getElementById("note-title").addEventListener("input", autoSave);
@@ -193,7 +205,6 @@ function findText() {
   const editor = document.getElementById("rich-editor");
 
   removeHighlights();
-
   if (!input) return;
 
   const regex = new RegExp(`(${input})`, "gi");
@@ -205,22 +216,18 @@ function findText() {
 
 function removeHighlights() {
   const editor = document.getElementById("rich-editor");
-  const spans = editor.querySelectorAll(".find-highlight");
-
-  spans.forEach(span => {
+  editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
 }
 
 /* =========================================================
-   CLICK OUTSIDE FIND BOX CLOSE
+   CLOSE FIND ON OUTSIDE CLICK
 ========================================================= */
 
 document.addEventListener("click", e => {
-  if (
-    !e.target.closest(".find-box") &&
-    !e.target.closest(".fa-magnifying-glass")
-  ) {
+  if (!e.target.closest(".find-box") &&
+      !e.target.closest(".fa-magnifying-glass")) {
     document.getElementById("findBox").style.display = "none";
   }
 });

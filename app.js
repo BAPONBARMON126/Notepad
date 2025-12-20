@@ -5,7 +5,7 @@ const apiBase = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/
 const encode = d => btoa(unescape(encodeURIComponent(JSON.stringify(d))));
 const decode = d => JSON.parse(decodeURIComponent(escape(atob(d))));
 
-/* ================= LOAD NOTES ================= */
+/* ========== LOAD NOTES ========== */
 async function loadNotes(){
   const r = await fetch(`${apiBase}/index.json`,{
     headers:{ Authorization:`token ${GITHUB_TOKEN}` }
@@ -15,11 +15,10 @@ async function loadNotes(){
   renderSidebar();
 }
 
-/* ================= SIDEBAR ================= */
+/* ========== SIDEBAR ========== */
 function renderSidebar(){
   const list = document.getElementById("notesList");
   list.innerHTML = "";
-
   notes.forEach(n=>{
     const div = document.createElement("div");
     div.className = "note-item" + (n.id === activeId ? " active" : "");
@@ -32,10 +31,9 @@ function renderSidebar(){
   });
 }
 
-/* ================= ADD NOTE ================= */
-async function addNewNote(){
+/* ========== CREATE NOTE (INTERNAL) ========== */
+async function createNote(){
   const id = "note-" + Date.now();
-
   const note = {
     id,
     title: "",
@@ -46,7 +44,6 @@ async function addNewNote(){
   notes.unshift(note);
   activeId = id;
 
-  // Create empty note file in GitHub
   await fetch(`${apiBase}/${id}.json`,{
     method:"PUT",
     headers:{
@@ -54,29 +51,26 @@ async function addNewNote(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
-      message:"create new note",
+      message:"create note",
       content: encode(note)
     })
   });
 
   await updateIndex();
-
-  // ✅ CLEAR EDITOR + FOCUS TITLE
-  const titleInput = document.getElementById("note-title");
-  const editor = document.getElementById("rich-editor");
-
-  titleInput.value = "";
-  editor.innerHTML = "";
-
-  titleInput.focus();   // 🔥 THIS WAS MISSING
-
   renderSidebar();
 }
 
-/* ================= OPEN NOTE ================= */
+/* ========== ADD NOTE BUTTON ========== */
+async function addNewNote(){
+  await createNote();
+  document.getElementById("note-title").value = "";
+  document.getElementById("rich-editor").innerHTML = "";
+  document.getElementById("note-title").focus();
+}
+
+/* ========== OPEN NOTE ========== */
 async function openNote(id){
   activeId = id;
-
   const r = await fetch(`${apiBase}/${id}.json`,{
     headers:{ Authorization:`token ${GITHUB_TOKEN}` }
   });
@@ -85,15 +79,14 @@ async function openNote(id){
 
   document.getElementById("note-title").value = n.title || "";
   document.getElementById("rich-editor").innerHTML = n.content || "";
-
   renderSidebar();
 }
 
-/* ================= SAVE NOTE ================= */
+/* ========== SAVE NOTE (AUTO CREATE FIX) ========== */
 async function saveNote(){
+  // 🔥 AUTO CREATE NOTE IF NONE SELECTED
   if(!activeId){
-    alert("No note selected");
-    return;
+    await createNote();
   }
 
   const titleInput = document.getElementById("note-title");
@@ -136,7 +129,7 @@ async function saveNote(){
   alert("Saved to cloud ✅");
 }
 
-/* ================= UPDATE INDEX ================= */
+/* ========== UPDATE INDEX ========== */
 async function updateIndex(){
   const r = await fetch(`${apiBase}/index.json`,{
     headers:{ Authorization:`token ${GITHUB_TOKEN}` }
@@ -150,14 +143,14 @@ async function updateIndex(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
-      message:"update notes index",
+      message:"update index",
       content: encode(notes),
       sha: f.sha
     })
   });
 }
 
-/* ================= FIND ================= */
+/* ========== FIND ========== */
 function toggleFind(){
   const box = document.getElementById("findBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
@@ -179,17 +172,17 @@ function findText(){
   );
 }
 
-/* ================= FORMAT ================= */
+/* ========== FORMAT ========== */
 function applyFormat(cmd){
   document.execCommand(cmd,false,null);
   document.getElementById("rich-editor").focus();
 }
 
-/* ================= MOBILE ================= */
+/* ========== MOBILE ========== */
 function toggleSidebar(){
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("mobileOverlay").classList.toggle("active");
 }
 
-/* ================= INIT ================= */
+/* ========== INIT ========== */
 loadNotes();

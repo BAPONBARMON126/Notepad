@@ -9,7 +9,7 @@ let activeNoteId = null;
 let autoSaveTimer = null;
 
 /* =========================================================
-   CONNECTION INDICATOR (unchanged)
+   CONNECTION INDICATOR
 ========================================================= */
 
 const indicator = document.getElementById("conn-indicator");
@@ -40,7 +40,7 @@ function toggleSidebar() {
 }
 
 /* =========================================================
-   LOAD NOTES LIST ON START
+   LOAD NOTES LIST
 ========================================================= */
 
 async function loadNotes() {
@@ -56,7 +56,7 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST
+   RENDER NOTES LIST (WITH DELETE ICON)
 ========================================================= */
 
 function renderNotesList() {
@@ -68,35 +68,55 @@ function renderNotesList() {
     div.className =
       "note-item" + (note.id === activeNoteId ? " active" : "");
 
-    div.innerHTML = `
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+
+    /* Left side (title + date) */
+    const info = document.createElement("div");
+    info.innerHTML = `
       <strong>${note.title || "Untitled"}</strong><br>
       <small>${note.updated || ""}</small>
     `;
 
+    /* Delete icon */
+    const del = document.createElement("span");
+    del.innerHTML = "🗑️";
+    del.style.cursor = "pointer";
+    del.title = "Delete note";
+
+    // delete click (STOP open)
+    del.onclick = (e) => {
+      e.stopPropagation();
+      deleteNote(note.id);
+    };
+
+    // open note on click anywhere else
     div.onclick = () => openNote(note.id);
+
+    div.appendChild(info);
+    div.appendChild(del);
     list.appendChild(div);
   });
 }
 
 /* =========================================================
-   ADD NEW NOTE (TITLE FIRST LOGIC)
+   ADD NEW NOTE (TITLE FIRST)
 ========================================================= */
 
 function addNewNote() {
   const title = prompt("Enter note title");
-
   if (!title || !title.trim()) return;
 
   const id = "note-" + Date.now();
   const now = new Date().toLocaleString();
 
-  const newNoteMeta = {
+  notes.unshift({
     id,
     title: title.trim(),
     updated: now
-  };
+  });
 
-  notes.unshift(newNoteMeta);
   activeNoteId = id;
 
   document.getElementById("note-title").value = title.trim();
@@ -127,7 +147,35 @@ async function openNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE (MANUAL + POPUP)
+   DELETE NOTE
+========================================================= */
+
+async function deleteNote(id) {
+  const yes = confirm("Are you sure you want to delete this note?");
+  if (!yes) return;
+
+  try {
+    await fetch(`${BACKEND_URL}/api/delete/${id}`, {
+      method: "DELETE"
+    });
+
+    notes = notes.filter(n => n.id !== id);
+
+    if (activeNoteId === id) {
+      activeNoteId = null;
+      document.getElementById("note-title").value = "";
+      document.getElementById("rich-editor").innerHTML = "";
+    }
+
+    renderNotesList();
+    alert("🗑️ Note deleted successfully");
+  } catch {
+    alert("Failed to delete note");
+  }
+}
+
+/* =========================================================
+   SAVE NOTE (MANUAL)
 ========================================================= */
 
 function saveNote(showAlert = true) {

@@ -50,12 +50,13 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (PINNED ON TOP)
+   RENDER NOTES LIST (GRID + PINNED ON TOP)
 ========================================================= */
 function renderNotesList() {
   const list = document.getElementById("notesList");
   list.innerHTML = "";
 
+  // pinned notes first
   const pinnedNotes = notes.filter(n => n.pinned === true);
   const normalNotes = notes.filter(n => !n.pinned);
   const orderedNotes = [...pinnedNotes, ...normalNotes];
@@ -64,30 +65,34 @@ function renderNotesList() {
     const div = document.createElement("div");
     div.className =
       "note-item" + (note.id === activeNoteId ? " active" : "");
-
+    div.style.userSelect = "none";
+    div.style.cursor = "pointer";
     div.style.display = "flex";
+    div.style.flexDirection = "column";
     div.style.justifyContent = "space-between";
-    div.style.alignItems = "center";
-    div.style.userSelect = "none";              // 🔴 FIX: no text selection
 
-    const info = document.createElement("div");
-    info.style.flex = "1";
-    info.style.userSelect = "none";             // 🔴 FIX: title text not selectable
-    info.innerHTML = `
-      <strong>${note.title || "Untitled"}</strong><br>
-      <small>${note.updated || ""}</small>
-    `;
+    const title = document.createElement("strong");
+    title.textContent = note.title || "Untitled";
 
-    /* 📌 PIN ICON */
+    const preview = document.createElement("div");
+    preview.className = "note-preview";
+    preview.textContent =
+      (note.content || "")
+        .replace(/<[^>]*>/g, "")
+        .slice(0, 120) || "No content";
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.justifyContent = "flex-end";
+    actions.style.gap = "10px";
+    actions.style.marginTop = "8px";
+
+    /* 📌 PIN */
     const pinBtn = document.createElement("span");
     pinBtn.innerHTML = note.pinned ? "📌" : "📍";
-    pinBtn.title = note.pinned ? "Unpin note" : "Pin note";
+    pinBtn.style.fontSize = "20px";
     pinBtn.style.cursor = "pointer";
-    pinBtn.style.fontSize = "22px";
-    pinBtn.style.marginRight = "10px";
-    pinBtn.style.userSelect = "none";
-
-    pinBtn.onclick = (e) => {
+    pinBtn.onclick = e => {
       e.stopPropagation();
       togglePin(note.id);
     };
@@ -96,19 +101,20 @@ function renderNotesList() {
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
-    del.title = "Delete note";
-    del.style.userSelect = "none";
-
-    del.onclick = (e) => {
+    del.onclick = e => {
       e.stopPropagation();
       deleteNote(note.id);
     };
 
+    actions.appendChild(pinBtn);
+    actions.appendChild(del);
+
+    div.appendChild(title);
+    div.appendChild(preview);
+    div.appendChild(actions);
+
     div.onclick = () => openNote(note.id);
 
-    div.appendChild(info);
-    div.appendChild(pinBtn);
-    div.appendChild(del);
     list.appendChild(div);
   });
 }
@@ -154,12 +160,7 @@ async function openNote(id) {
     document.getElementById("rich-editor").innerHTML = note.content || "";
 
     const local = notes.find(n => n.id === id);
-    if (local) {
-      local.title = note.title;
-      local.content = note.content;
-      local.pinned = note.pinned;
-      local.updated = note.updated;
-    }
+    if (local) Object.assign(local, note);
 
     renderNotesList();
 
@@ -209,8 +210,7 @@ document.getElementById("rich-editor").addEventListener("input", autoSave);
    DELETE NOTE
 ========================================================= */
 async function deleteNote(id) {
-  const yes = confirm("Are you sure you want to delete this note?");
-  if (!yes) return;
+  if (!confirm("Are you sure you want to delete this note?")) return;
 
   try {
     await fetch(`${BACKEND_URL}/api/delete/${id}`, { method: "DELETE" });
@@ -284,4 +284,4 @@ function removeHighlights() {
   editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
-       }
+}

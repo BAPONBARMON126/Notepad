@@ -31,7 +31,7 @@ pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR (MOBILE TOGGLE)
+   SIDEBAR (MOBILE)
 ========================================================= */
 
 function toggleSidebar() {
@@ -40,7 +40,7 @@ function toggleSidebar() {
 }
 
 /* =========================================================
-   LOAD NOTES LIST ON PAGE LOAD
+   LOAD NOTES
 ========================================================= */
 
 async function loadNotes() {
@@ -49,14 +49,14 @@ async function loadNotes() {
     notes = await r.json();
     renderNotesList();
   } catch {
-    console.error("Failed to load notes list");
+    console.error("Failed to load notes");
   }
 }
 
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (PIN BUTTON ADDED)
+   RENDER NOTES LIST (BIG STANDARD PIN ICON)
 ========================================================= */
 
 function renderNotesList() {
@@ -71,7 +71,6 @@ function renderNotesList() {
     div.style.display = "flex";
     div.style.justifyContent = "space-between";
     div.style.alignItems = "center";
-    div.style.gap = "6px";
 
     const info = document.createElement("div");
     info.style.flex = "1";
@@ -80,17 +79,30 @@ function renderNotesList() {
       <small>${note.updated || ""}</small>
     `;
 
-    /* 📌 PIN / UNPIN BUTTON (NEW) */
-    const pinBtn = document.createElement("button");
-    pinBtn.textContent = note.pinned ? "Unpin" : "Pin";
+    /* 📌 STANDARD PIN / UNPIN ICON (UPDATED LOOK) */
+    const pinBtn = document.createElement("span");
+    pinBtn.innerHTML = note.pinned ? "📌" : "📍";
+    pinBtn.title = note.pinned ? "Unpin note" : "Pin note";
+
     pinBtn.style.cursor = "pointer";
+    pinBtn.style.fontSize = "22px";     // 🔥 bigger icon
+    pinBtn.style.marginRight = "10px";
+    pinBtn.style.userSelect = "none";
+    pinBtn.style.transition = "transform 0.15s ease";
+
+    pinBtn.onmouseenter = () => {
+      pinBtn.style.transform = "scale(1.2)";
+    };
+    pinBtn.onmouseleave = () => {
+      pinBtn.style.transform = "scale(1)";
+    };
 
     pinBtn.onclick = (e) => {
       e.stopPropagation();
       togglePin(note.id);
     };
 
-    /* 🗑️ DELETE BUTTON (UNCHANGED) */
+    /* 🗑️ DELETE (UNCHANGED) */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
@@ -150,9 +162,8 @@ async function openNote(id) {
     document.getElementById("note-title").value = note.title || "";
     document.getElementById("rich-editor").innerHTML = note.content || "";
 
-    // sync pin state from backend
     const local = notes.find(n => n.id === id);
-    if (local) local.pinned = note.pinned || false;
+    if (local) local.pinned = note.pinned === true;
 
     renderNotesList();
     document.getElementById("rich-editor").focus();
@@ -176,10 +187,7 @@ async function deleteNote(id) {
   if (!yes) return;
 
   try {
-    await fetch(`${BACKEND_URL}/api/delete/${id}`, {
-      method: "DELETE"
-    });
-
+    await fetch(`${BACKEND_URL}/api/delete/${id}`, { method: "DELETE" });
     notes = notes.filter(n => n.id !== id);
 
     if (activeNoteId === id) {
@@ -189,29 +197,24 @@ async function deleteNote(id) {
     }
 
     renderNotesList();
-    alert("🗑️ Note deleted successfully");
   } catch {
     alert("Failed to delete note");
   }
 }
 
 /* =========================================================
-   SAVE NOTE (PIN STATE INCLUDED)
+   SAVE NOTE (PIN INCLUDED)
 ========================================================= */
 
 function saveNote(showAlert = true) {
   if (!activeNoteId) return;
 
-  const title = document.getElementById("note-title").value;
-  const content = document.getElementById("rich-editor").innerHTML;
-  const updated = new Date().toLocaleString();
-
   const note = notes.find(n => n.id === activeNoteId);
   if (!note) return;
 
-  note.title = title;
-  note.content = content;
-  note.updated = updated;
+  note.title = document.getElementById("note-title").value;
+  note.content = document.getElementById("rich-editor").innerHTML;
+  note.updated = new Date().toLocaleString();
 
   fetch(BACKEND_URL + "/api/save", {
     method: "POST",
@@ -220,9 +223,7 @@ function saveNote(showAlert = true) {
   });
 
   renderNotesList();
-  if (showAlert) {
-    alert("✅ Note saved successfully");
-  }
+  if (showAlert) alert("Note saved");
 }
 
 /* =========================================================
@@ -247,7 +248,6 @@ function togglePin(id) {
 
   note.pinned = !note.pinned;
 
-  // save pin state to backend
   fetch(BACKEND_URL + "/api/save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -274,9 +274,6 @@ function applyFormat(cmd) {
 function toggleFind() {
   const box = document.getElementById("findBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
-  if (box.style.display === "block") {
-    document.getElementById("findInput").focus();
-  }
 }
 
 function findText() {
@@ -298,17 +295,4 @@ function removeHighlights() {
   editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
-}
-
-/* =========================================================
-   CLOSE FIND BOX ON OUTSIDE CLICK
-========================================================= */
-
-document.addEventListener("click", e => {
-  if (
-    !e.target.closest(".find-box") &&
-    !e.target.closest(".fa-magnifying-glass")
-  ) {
-    document.getElementById("findBox").style.display = "none";
-  }
-});
+       }

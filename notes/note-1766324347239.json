@@ -1,0 +1,7 @@
+{
+  "id": "note-1766324347239",
+  "title": "T - Codes",
+  "content": "&nbsp;1. NME51N              P.R creation<div>&nbsp;2. NME21N              P.O creation</div><div>&nbsp;3. NVL06T               Transportation planning</div><div>&nbsp;4. NVLSP                 Delivery split</div><div>&nbsp;5. NVL02N               Change Delivery</div><div>&nbsp;6. NVL01N      Create delivery with order reference</div><div>&nbsp;7. NDISP                 Daily dispatch report</div><div>&nbsp;8. NZVL10G             Transporter screen</div><div>&nbsp;9. NVA03                  Display sales document</div><div>10. NVL10D              Parches order items</div><div>11. NYMB5TN           Display stock in transit</div><div>12. NZSD46              Shipment Details</div><div>13. NZSD_GRN_N   Program ZSD_GR_POST</div><div>14. NZRSD07           Shipment Status</div><div>15. NVF01                 Create billing document</div><div>16. NVT02N           Change shipment : initial screen</div><div>17./NSU53               For error in t code of SAP</div>",
+  "updated": "21/12/2025, 19:09:12",
+  "pinned": false
+}

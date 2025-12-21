@@ -28,7 +28,7 @@ pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR (MOBILE)
+   SIDEBAR
 ========================================================= */
 function toggleSidebar(){
   document.getElementById("sidebar").classList.toggle("open");
@@ -36,16 +36,12 @@ function toggleSidebar(){
 }
 
 /* =========================================================
-   LOAD NOTES
+   LOAD NOTES LIST
 ========================================================= */
 async function loadNotes(){
-  try{
-    const r = await fetch(BACKEND_URL + "/api/index");
-    notes = await r.json();
-    renderNotesList();
-  }catch(e){
-    console.error("Failed to load notes", e);
-  }
+  const r = await fetch(BACKEND_URL + "/api/index");
+  notes = await r.json();
+  renderNotesList();
 }
 loadNotes();
 
@@ -63,47 +59,38 @@ function renderNotesList(){
   finalNotes.forEach(note => {
     const div = document.createElement("div");
     div.className = "note-item" + (note.id === activeNoteId ? " active" : "");
-
     div.style.display = "flex";
-    div.style.justifyContent = "space-between";
     div.style.alignItems = "center";
     div.style.gap = "6px";
 
     const info = document.createElement("div");
     info.style.flex = "1";
     info.innerHTML = `
-      <strong>${note.title || "Untitled"}</strong>
-      <br>
-      <small>${note.updated || ""}</small>
+      <strong>${note.title}</strong>
+      <br><small>${note.updated || ""}</small>
     `;
 
-    // 📌 PIN BUTTON (NEW – beside delete)
-    const pin = document.createElement("span");
-    pin.innerHTML = note.pinned ? "📌" : "📍";
-    pin.style.cursor = "pointer";
-    pin.title = note.pinned ? "Unpin note" : "Pin note";
-
-    pin.onclick = (e) => {
+    /* PIN / UNPIN TEXT BUTTON */
+    const pinBtn = document.createElement("button");
+    pinBtn.textContent = note.pinned ? "Unpin" : "Pin";
+    pinBtn.style.cursor = "pointer";
+    pinBtn.onclick = (e) => {
       e.stopPropagation();
       togglePin(note.id);
     };
 
-    // 🗑️ DELETE BUTTON
-    const del = document.createElement("span");
-    del.innerHTML = "🗑️";
-    del.style.cursor = "pointer";
-    del.title = "Delete note";
-
+    /* DELETE BUTTON */
+    const del = document.createElement("button");
+    del.textContent = "Delete";
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
     };
 
-    // open note on click
     div.onclick = () => openNote(note.id);
 
     div.appendChild(info);
-    div.appendChild(pin);
+    div.appendChild(pinBtn);
     div.appendChild(del);
     list.appendChild(div);
   });
@@ -114,22 +101,23 @@ function renderNotesList(){
 ========================================================= */
 function addNewNote(){
   const title = prompt("Enter note title");
-  if(!title || !title.trim()) return;
+  if(!title) return;
 
   const id = "note-" + Date.now();
   const now = new Date().toLocaleString();
 
-  notes.unshift({
+  const note = {
     id,
     title: title.trim(),
     content: "",
-    updated: now,
-    pinned: false
-  });
+    pinned: false,
+    updated: now
+  };
 
+  notes.unshift(note);
   activeNoteId = id;
 
-  document.getElementById("note-title").value = title.trim();
+  document.getElementById("note-title").value = note.title;
   document.getElementById("rich-editor").innerHTML = "";
 
   renderNotesList();
@@ -139,84 +127,89 @@ function addNewNote(){
    OPEN NOTE
 ========================================================= */
 async function openNote(id){
-  try{
-    activeNoteId = id;
+  activeNoteId = id;
 
-    const r = await fetch(`${BACKEND_URL}/api/note/${id}`);
-    const note = await r.json();
+  const r = await fetch(`${BACKEND_URL}/api/note/${id}`);
+  const note = await r.json();
 
-    document.getElementById("note-title").value = note.title || "";
-    document.getElementById("rich-editor").innerHTML = note.content || "";
+  document.getElementById("note-title").value = note.title || "";
+  document.getElementById("rich-editor").innerHTML = note.content || "";
 
-    // sync pin state
-    const local = notes.find(n => n.id === id);
-    if(local) local.pinned = note.pinned || false;
+  const local = notes.find(n => n.id === id);
+  if(local) local.pinned = note.pinned || false;
 
-    renderNotesList();
+  renderNotesList();
 
-    // auto close sidebar on mobile
-    if(window.innerWidth <= 768){
-      document.getElementById("sidebar").classList.remove("open");
-      document.getElementById("mobileOverlay").classList.remove("active");
-    }
-  }catch(e){
-    alert("Failed to load note");
+  if(window.innerWidth <= 768){
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("mobileOverlay").classList.remove("active");
   }
 }
 
 /* =========================================================
-   SAVE NOTE (MANUAL + AUTO, NO POPUP ERROR)
+   SAVE NOTE (FIXED)
 ========================================================= */
-function saveNote(showAlert = true){
+async function saveNote(showAlert = true){
   if(!activeNoteId) return;
 
   const title = document.getElementById("note-title").value;
   const content = document.getElementById("rich-editor").innerHTML;
-  const updated = new Date().toLocaleString();
 
-  const pinned =
-    notes.find(n => n.id === activeNoteId)?.pinned || false;
+  const note = notes.find(n => n.id === activeNoteId);
+  if(!note) return;
 
-  const noteData = {
-    id: activeNoteId,
-    title,
-    content,
-    updated,
-    pinned
-  };
+  note.title = title;
+  note.content = content;
+  note.updated = new Date().toLocaleString();
 
-  const idx = notes.findIndex(n => n.id === activeNoteId);
-  if(idx !== -1){
-    notes[idx] = noteData;
-  }
-
-  fetch(BACKEND_URL + "/api/save", {
+  await fetch(BACKEND_URL + "/api/save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(noteData)
+    body: JSON.stringify(note)
   });
 
   renderNotesList();
-  if(showAlert) alert("✅ Note saved");
+  if(showAlert) alert("Note saved");
 }
 
+/* =========================================================
+   AUTO SAVE
+========================================================= */
 function autoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => saveNote(false), 1200);
 }
-
 document.getElementById("note-title").addEventListener("input", autoSave);
 document.getElementById("rich-editor").addEventListener("input", autoSave);
 
 /* =========================================================
-   DELETE NOTE (PERMANENT)
+   PIN / UNPIN (PERMANENT + FIXED)
+========================================================= */
+async function togglePin(id){
+  const note = notes.find(n => n.id === id);
+  if(!note) return;
+
+  note.pinned = !note.pinned;
+  note.updated = new Date().toLocaleString();
+
+  await fetch(BACKEND_URL + "/api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(note)
+  });
+
+  renderNotesList();
+}
+
+/* =========================================================
+   DELETE NOTE
 ========================================================= */
 async function deleteNote(id){
   if(!confirm("Delete this note permanently?")) return;
 
   await fetch(`${BACKEND_URL}/api/delete/${id}`, { method:"DELETE" });
-  notes = notes.filter(n => n.id !== id);
 
+  notes = notes.filter(n => n.id !== id);
   if(activeNoteId === id){
     activeNoteId = null;
     document.getElementById("note-title").value = "";
@@ -226,47 +219,18 @@ async function deleteNote(id){
 }
 
 /* =========================================================
-   PIN / UNPIN (PERMANENT)
-========================================================= */
-function togglePin(id){
-  const note = notes.find(n => n.id === id);
-  if(!note) return;
-
-  note.pinned = !note.pinned;
-
-  // save pin state silently
-  saveNote(false);
-  renderNotesList();
-}
-
-/* =========================================================
    FIND
 ========================================================= */
 function toggleFind(){
   const box = document.getElementById("findBox");
   box.style.display = box.style.display === "block" ? "none" : "block";
-  if(box.style.display === "block"){
-    document.getElementById("findInput").focus();
-  }
 }
-
 function findText(){
   const text = document.getElementById("findInput").value.toLowerCase();
   const editor = document.getElementById("rich-editor");
-
-  removeHighlights();
+  editor.innerHTML = editor.innerHTML.replace(/<mark>|<\/mark>/g,"");
   if(!text) return;
-
-  const regex = new RegExp(`(${text})`, "gi");
   editor.innerHTML = editor.innerHTML.replace(
-    regex,
-    `<span class="find-highlight">$1</span>`
+    new RegExp(`(${text})`,"gi"),"<mark>$1</mark>"
   );
-}
-
-function removeHighlights(){
-  const editor = document.getElementById("rich-editor");
-  editor.querySelectorAll(".find-highlight").forEach(span=>{
-    span.replaceWith(span.textContent);
-  });
 }

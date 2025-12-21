@@ -56,14 +56,18 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (BIG STANDARD PIN ICON)
+   RENDER NOTES LIST (PINNED NOTES ALWAYS ON TOP)
 ========================================================= */
 
 function renderNotesList() {
   const list = document.getElementById("notesList");
   list.innerHTML = "";
 
-  notes.forEach(note => {
+  const pinnedNotes = notes.filter(n => n.pinned === true);
+  const normalNotes = notes.filter(n => !n.pinned);
+  const orderedNotes = [...pinnedNotes, ...normalNotes];
+
+  orderedNotes.forEach(note => {
     const div = document.createElement("div");
     div.className =
       "note-item" + (note.id === activeNoteId ? " active" : "");
@@ -79,13 +83,12 @@ function renderNotesList() {
       <small>${note.updated || ""}</small>
     `;
 
-    /* 📌 STANDARD PIN / UNPIN ICON (UPDATED LOOK) */
+    /* 📌 PIN ICON */
     const pinBtn = document.createElement("span");
     pinBtn.innerHTML = note.pinned ? "📌" : "📍";
     pinBtn.title = note.pinned ? "Unpin note" : "Pin note";
-
     pinBtn.style.cursor = "pointer";
-    pinBtn.style.fontSize = "22px";     // 🔥 bigger icon
+    pinBtn.style.fontSize = "22px";
     pinBtn.style.marginRight = "10px";
     pinBtn.style.userSelect = "none";
     pinBtn.style.transition = "transform 0.15s ease";
@@ -102,7 +105,7 @@ function renderNotesList() {
       togglePin(note.id);
     };
 
-    /* 🗑️ DELETE (UNCHANGED) */
+    /* 🗑️ DELETE */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
@@ -123,7 +126,7 @@ function renderNotesList() {
 }
 
 /* =========================================================
-   ADD NEW NOTE
+   ADD NEW NOTE (TITLE BUG FIXED)
 ========================================================= */
 
 function addNewNote() {
@@ -133,17 +136,26 @@ function addNewNote() {
   const id = "note-" + Date.now();
   const now = new Date().toLocaleString();
 
-  notes.unshift({
+  const newNote = {
     id,
     title: title.trim(),
+    content: "",
     updated: now,
     pinned: false
-  });
+  };
 
+  notes.unshift(newNote);
   activeNoteId = id;
 
-  document.getElementById("note-title").value = title.trim();
+  document.getElementById("note-title").value = newNote.title;
   document.getElementById("rich-editor").innerHTML = "";
+
+  // 🔴 Immediately save so title never becomes blank
+  fetch(BACKEND_URL + "/api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newNote)
+  });
 
   renderNotesList();
 }
@@ -203,7 +215,7 @@ async function deleteNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE (PIN INCLUDED)
+   SAVE NOTE
 ========================================================= */
 
 function saveNote(showAlert = true) {
@@ -247,6 +259,7 @@ function togglePin(id) {
   if (!note) return;
 
   note.pinned = !note.pinned;
+  note.updated = new Date().toLocaleString();
 
   fetch(BACKEND_URL + "/api/save", {
     method: "POST",
@@ -295,4 +308,4 @@ function removeHighlights() {
   editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
-       }
+  }

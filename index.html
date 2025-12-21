@@ -115,7 +115,16 @@ body{
   background:#e1f5fe;
 }
 
-/* ================= CONNECTION INDICATOR (UPDATED) ================= */
+/* 🔴🔴🔴 ADD ONLY THIS (BUTTON ACTIVE HIGHLIGHT) 🔴🔴🔴 */
+.icon-btn.active-btn{
+  background:#0288d1;
+  color:#fff;
+  border-color:#0288d1;
+  box-shadow:0 0 6px rgba(2,136,209,.6);
+}
+/* 🔴🔴🔴 END ADD 🔴🔴🔴 */
+
+/* ================= CONNECTION INDICATOR ================= */
 #conn-indicator{
   width:18px;
   height:18px;
@@ -127,14 +136,12 @@ body{
   font-size:12px;
 }
 
-/* 🔄 connecting */
 .conn-spinner{
   border:3px solid #aaa;
   border-top:3px solid #00c853;
   animation:spin 1s linear infinite;
 }
 
-/* 🟢 connected */
 .conn-online{
   background:#00c853;
   color:#fff;
@@ -230,19 +237,21 @@ body{
 
       <div class="toolbar">
 
-        <!-- 🔴 Indicator LEFT of search -->
         <span id="conn-indicator" class="conn-spinner"></span>
 
         <div class="icon-btn" onclick="toggleFind()">
           <i class="fa-solid fa-magnifying-glass"></i>
         </div>
 
-        <div class="icon-btn" onclick="applyFormat('bold')"><b>B</b></div>
-        <div class="icon-btn" onclick="applyFormat('italic')"><i>I</i></div>
-        <div class="icon-btn" onclick="applyFormat('underline')"><u>U</u></div>
+        <!-- 🔴 onclick ONLY changed, UI SAME -->
+        <div class="icon-btn" onclick="toggleFormat('bold', this)"><b>B</b></div>
+        <div class="icon-btn" onclick="toggleFormat('italic', this)"><i>I</i></div>
+        <div class="icon-btn" onclick="toggleFormat('underline', this)"><u>U</u></div>
+
         <div class="icon-btn" onclick="saveNote()">
           <i class="fa-solid fa-cloud-arrow-up"></i>
         </div>
+
       </div>
     </div>
 
@@ -262,6 +271,5 @@ body{
 
 <script src="config.js"></script>
 <script src="app.v3.js"></script>
-
 </body>
 </html>

@@ -1,6 +1,7 @@
 /* =========================================================
    CONFIG
 ========================================================= */
+
 const BACKEND_URL = "https://notepad-backend-n5nc.onrender.com";
 
 let notes = [];
@@ -8,206 +9,317 @@ let activeNoteId = null;
 let autoSaveTimer = null;
 
 /* =========================================================
-   CONNECTION INDICATOR (UNCHANGED)
+   CONNECTION INDICATOR
 ========================================================= */
+
 const indicator = document.getElementById("conn-indicator");
 
-async function pingBackend(){
-  try{
+async function pingBackend() {
+  try {
     indicator.className = "conn-spinner";
     indicator.innerHTML = "";
-    await fetch(BACKEND_URL + "/", { cache:"no-store" });
+    await fetch(BACKEND_URL + "/", { cache: "no-store" });
     indicator.className = "conn-online";
     indicator.innerHTML = "✓";
-  }catch{
+  } catch {
     indicator.className = "conn-spinner";
     indicator.innerHTML = "";
   }
 }
+
 pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR
+   SIDEBAR (MOBILE TOGGLE)
 ========================================================= */
-function toggleSidebar(){
+
+function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("mobileOverlay").classList.toggle("active");
 }
 
 /* =========================================================
-   LOAD NOTES
+   LOAD NOTES LIST ON PAGE LOAD
 ========================================================= */
-async function loadNotes(){
-  const r = await fetch(BACKEND_URL + "/api/index");
-  notes = await r.json();
-  renderNotesList();
+
+async function loadNotes() {
+  try {
+    const r = await fetch(BACKEND_URL + "/api/index");
+    notes = await r.json();
+    renderNotesList();
+  } catch {
+    console.error("Failed to load notes list");
+  }
 }
+
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES (PIN FIRST)
+   RENDER NOTES LIST (PINNED FIRST)
 ========================================================= */
-function renderNotesList(){
+
+function renderNotesList() {
   const list = document.getElementById("notesList");
   list.innerHTML = "";
 
-  const pinned = notes.filter(n=>n.pinned);
-  const normal = notes.filter(n=>!n.pinned);
-  const finalNotes = [...pinned, ...normal];
+  // 📌 pinned notes first
+  const pinnedNotes = notes.filter(n => n.pinned);
+  const normalNotes = notes.filter(n => !n.pinned);
+  const finalNotes = [...pinnedNotes, ...normalNotes];
 
-  finalNotes.forEach(note=>{
+  finalNotes.forEach(note => {
     const div = document.createElement("div");
-    div.className = "note-item" + (note.id===activeNoteId?" active":"");
+    div.className =
+      "note-item" + (note.id === activeNoteId ? " active" : "");
 
-    div.innerHTML = `
-      <strong>${note.title}</strong> ${note.pinned?"📌":""}
-      <br><small>${note.updated||""}</small>
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+
+    const info = document.createElement("div");
+    info.innerHTML = `
+      <strong>${note.title || "Untitled"}</strong>
+      ${note.pinned ? " 📌" : ""}
+      <br>
+      <small>${note.updated || ""}</small>
     `;
 
-    div.onclick = ()=>openNote(note.id);
+    const del = document.createElement("span");
+    del.innerHTML = "🗑️";
+    del.style.cursor = "pointer";
+    del.title = "Delete note";
 
-    // right-click / long-press → pin
-    div.oncontextmenu = (e)=>{
+    del.onclick = (e) => {
+      e.stopPropagation();
+      deleteNote(note.id);
+    };
+
+    // LEFT CLICK → open note
+    div.onclick = () => openNote(note.id);
+
+    // RIGHT CLICK / LONG PRESS → pin / unpin
+    div.oncontextmenu = (e) => {
       e.preventDefault();
       togglePin(note.id);
     };
 
+    div.appendChild(info);
+    div.appendChild(del);
     list.appendChild(div);
   });
 }
 
 /* =========================================================
-   ADD / OPEN NOTE
+   ADD NEW NOTE (TITLE FIRST)
 ========================================================= */
-function addNewNote(){
-  const title = prompt("Enter note title");
-  if(!title) return;
 
-  const id = "note-"+Date.now();
+function addNewNote() {
+  const title = prompt("Enter note title");
+  if (!title || !title.trim()) return;
+
+  const id = "note-" + Date.now();
   const now = new Date().toLocaleString();
 
   notes.unshift({
     id,
-    title,
-    content:"",
-    updated:now,
-    pinned:false
+    title: title.trim(),
+    updated: now,
+    pinned: false
   });
 
   activeNoteId = id;
-  document.getElementById("note-title").value = title;
+
+  document.getElementById("note-title").value = title.trim();
   document.getElementById("rich-editor").innerHTML = "";
 
   renderNotesList();
 }
 
-async function openNote(id){
-  activeNoteId = id;
+/* =========================================================
+   OPEN NOTE (AUTO CLOSE SIDEBAR ON MOBILE)
+========================================================= */
 
-  const r = await fetch(`${BACKEND_URL}/api/note/${id}`);
-  const note = await r.json();
+async function openNote(id) {
+  try {
+    activeNoteId = id;
 
-  document.getElementById("note-title").value = note.title||"";
-  document.getElementById("rich-editor").innerHTML = note.content||"";
+    const r = await fetch(`${BACKEND_URL}/api/note/${id}`);
+    const note = await r.json();
 
-  renderNotesList();
+    document.getElementById("note-title").value = note.title || "";
+    document.getElementById("rich-editor").innerHTML = note.content || "";
 
-  if(window.innerWidth<=768){
-    document.getElementById("sidebar").classList.remove("open");
-    document.getElementById("mobileOverlay").classList.remove("active");
+    // ensure pinned state sync
+    const local = notes.find(n => n.id === id);
+    if (local) local.pinned = note.pinned || false;
+
+    renderNotesList();
+    document.getElementById("rich-editor").focus();
+
+    if (window.innerWidth <= 768) {
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("mobileOverlay").classList.remove("active");
+    }
+
+  } catch {
+    alert("Failed to load note");
   }
 }
 
 /* =========================================================
-   SAVE (MANUAL + AUTO)
+   DELETE NOTE
 ========================================================= */
-function saveNote(showAlert=true){
-  if(!activeNoteId) return;
 
-  const note = {
-    id:activeNoteId,
-    title:document.getElementById("note-title").value,
-    content:document.getElementById("rich-editor").innerHTML,
-    updated:new Date().toLocaleString(),
-    pinned:notes.find(n=>n.id===activeNoteId)?.pinned||false
-  };
+async function deleteNote(id) {
+  const yes = confirm("Are you sure you want to delete this note?");
+  if (!yes) return;
 
-  fetch(BACKEND_URL+"/api/save",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(note)
-  });
+  try {
+    await fetch(`${BACKEND_URL}/api/delete/${id}`, {
+      method: "DELETE"
+    });
 
-  const i = notes.findIndex(n=>n.id===activeNoteId);
-  if(i!==-1) notes[i]=note;
+    notes = notes.filter(n => n.id !== id);
 
-  renderNotesList();
-  if(showAlert) alert("Note saved");
-}
+    if (activeNoteId === id) {
+      activeNoteId = null;
+      document.getElementById("note-title").value = "";
+      document.getElementById("rich-editor").innerHTML = "";
+    }
 
-function autoSave(){
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(()=>saveNote(false),1500);
-}
-document.getElementById("note-title").addEventListener("input",autoSave);
-document.getElementById("rich-editor").addEventListener("input",autoSave);
-
-/* =========================================================
-   DELETE (PERMANENT)
-========================================================= */
-async function deleteNote(id){
-  if(!confirm("Delete this note permanently?")) return;
-
-  await fetch(`${BACKEND_URL}/api/delete/${id}`,{ method:"DELETE" });
-  notes = notes.filter(n=>n.id!==id);
-
-  if(activeNoteId===id){
-    activeNoteId=null;
-    document.getElementById("note-title").value="";
-    document.getElementById("rich-editor").innerHTML="";
+    renderNotesList();
+    alert("🗑️ Note deleted successfully");
+  } catch {
+    alert("Failed to delete note");
   }
-  renderNotesList();
 }
 
 /* =========================================================
-   TEXT FORMATTING (FIXED)
+   SAVE NOTE (MANUAL)
 ========================================================= */
-function toggleFormat(cmd,btn){
-  const sel = window.getSelection();
-  if(!sel || sel.isCollapsed){
-    alert("Select text first");
+
+function saveNote(showAlert = true) {
+  if (!activeNoteId) {
+    alert("No note selected");
     return;
   }
-  document.execCommand(cmd,false,null);
-  btn.classList.toggle("active-btn");
+
+  const title = document.getElementById("note-title").value;
+  const content = document.getElementById("rich-editor").innerHTML;
+  const updated = new Date().toLocaleString();
+
+  const pinned =
+    notes.find(n => n.id === activeNoteId)?.pinned || false;
+
+  const noteData = {
+    id: activeNoteId,
+    title,
+    content,
+    updated,
+    pinned
+  };
+
+  const idx = notes.findIndex(n => n.id === activeNoteId);
+  if (idx !== -1) {
+    notes[idx].title = title;
+    notes[idx].updated = updated;
+    notes[idx].pinned = pinned;
+  }
+
+  fetch(BACKEND_URL + "/api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(noteData)
+  });
+
+  renderNotesList();
+
+  if (showAlert) {
+    alert("✅ Note saved successfully");
+  }
 }
 
 /* =========================================================
-   PIN (PERMANENT)
+   AUTO SAVE (NO POPUP)
 ========================================================= */
-function togglePin(id){
-  const note = notes.find(n=>n.id===id);
-  if(!note) return;
+
+function autoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveNote(false), 1200);
+}
+
+document.getElementById("note-title").addEventListener("input", autoSave);
+document.getElementById("rich-editor").addEventListener("input", autoSave);
+
+/* =========================================================
+   TEXT FORMATTING (UNCHANGED)
+========================================================= */
+
+function applyFormat(cmd) {
+  const editor = document.getElementById("rich-editor");
+  editor.focus();
+  document.execCommand(cmd, false, null);
+}
+
+/* =========================================================
+   PIN / UNPIN (PERMANENT)
+========================================================= */
+
+function togglePin(id) {
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
 
   note.pinned = !note.pinned;
+
+  // save pin state to backend
   saveNote(false);
+
   alert(note.pinned ? "📌 Note pinned" : "📌 Note unpinned");
 }
 
 /* =========================================================
-   FIND
+   FIND TEXT
 ========================================================= */
-function toggleFind(){
+
+function toggleFind() {
   const box = document.getElementById("findBox");
-  box.style.display = box.style.display==="block"?"none":"block";
+  box.style.display = box.style.display === "block" ? "none" : "block";
+  if (box.style.display === "block") {
+    document.getElementById("findInput").focus();
+  }
 }
-function findText(){
-  const text = document.getElementById("findInput").value.toLowerCase();
+
+function findText() {
+  const input = document.getElementById("findInput").value.toLowerCase();
   const editor = document.getElementById("rich-editor");
-  editor.innerHTML = editor.innerHTML.replace(/<mark>|<\/mark>/g,"");
-  if(!text) return;
+
+  removeHighlights();
+  if (!input) return;
+
+  const regex = new RegExp(`(${input})`, "gi");
   editor.innerHTML = editor.innerHTML.replace(
-    new RegExp(`(${text})`,"gi"),"<mark>$1</mark>"
+    regex,
+    `<span class="find-highlight">$1</span>`
   );
 }
+
+function removeHighlights() {
+  const editor = document.getElementById("rich-editor");
+  editor.querySelectorAll(".find-highlight").forEach(span => {
+    span.replaceWith(span.textContent);
+  });
+}
+
+/* =========================================================
+   CLOSE FIND BOX ON OUTSIDE CLICK
+========================================================= */
+
+document.addEventListener("click", e => {
+  if (
+    !e.target.closest(".find-box") &&
+    !e.target.closest(".fa-magnifying-glass")
+  ) {
+    document.getElementById("findBox").style.display = "none";
+  }
+});

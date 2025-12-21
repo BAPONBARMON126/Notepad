@@ -1,7 +1,7 @@
 {
   "id": "note-1766324641221",
-  "title": "Batch or storage location Change",
-  "updated": "21/12/2025, 23:45:49",
+  "title": "Batch or storage location",
+  "updated": "21/12/2025, 23:46:08",
   "pinned": false,
   "content": "A). How to change batch or storage location after costing calculate ?<div><br></div><div>Tips :&nbsp;</div><div><br></div><div>1. 1st copy shipment number</div><div>2. go to /NVT02N, paste here shipment number &amp; press enter.</div><div>3. go to shipment Cst cal tab &amp; click shpmnt cost Doc.</div><div>4. Copy shipment cost number</div><div>5. go to VI02 press enter. &amp; paste shipment cost number and hit enter.</div><div>6. Double click on Net value amount.</div><div>7. go to settlement tab &amp; tick check box and save all data.</div><div>8. Again go to VI02 pate shipment cost number here and hit enter button.</div><div>9. Now click on delivery icon and delete shipment cost number.</div><div>10. Now go to /NVT02N paste shipment number untick shipment competition and save.&nbsp;&nbsp;</div><div>11. Now go to /NVL02N enter here delivery number.</div><div><br></div><div>&nbsp;Now here you can change batch or storage location.</div><div><br></div>"
 }

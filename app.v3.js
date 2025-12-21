@@ -6,6 +6,7 @@ const BACKEND_URL = "https://notepad-backend-n5nc.onrender.com";
 let notes = [];
 let activeNoteId = null;
 let autoSaveTimer = null;
+let currentView = "home"; // home | editor
 
 /* =========================================================
    CONNECTION INDICATOR
@@ -28,14 +29,6 @@ pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR (MOBILE)
-========================================================= */
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
-  document.getElementById("mobileOverlay").classList.toggle("active");
-}
-
-/* =========================================================
    LOAD NOTES
 ========================================================= */
 async function loadNotes() {
@@ -43,6 +36,7 @@ async function loadNotes() {
     const r = await fetch(BACKEND_URL + "/api/index");
     notes = await r.json();
     renderNotesList();
+    renderHomeGrid();
   } catch (e) {
     console.error("Failed to load notes", e);
   }
@@ -50,68 +44,39 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (GRID + PINNED ON TOP)
+   SIDEBAR TOGGLE
+========================================================= */
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("mobileOverlay").classList.toggle("active");
+}
+
+/* =========================================================
+   RENDER SIDEBAR LIST (PINNED TOP)
 ========================================================= */
 function renderNotesList() {
   const list = document.getElementById("notesList");
   list.innerHTML = "";
 
-  // pinned notes first
-  const pinnedNotes = notes.filter(n => n.pinned === true);
-  const normalNotes = notes.filter(n => !n.pinned);
-  const orderedNotes = [...pinnedNotes, ...normalNotes];
+  const ordered = [
+    ...notes.filter(n => n.pinned),
+    ...notes.filter(n => !n.pinned)
+  ];
 
-  orderedNotes.forEach(note => {
+  ordered.forEach(note => {
     const div = document.createElement("div");
-    div.className =
-      "note-item" + (note.id === activeNoteId ? " active" : "");
+    div.className = "note-item" + (note.id === activeNoteId ? " active" : "");
     div.style.userSelect = "none";
-    div.style.cursor = "pointer";
-    div.style.display = "flex";
-    div.style.flexDirection = "column";
-    div.style.justifyContent = "space-between";
 
     const title = document.createElement("strong");
     title.textContent = note.title || "Untitled";
 
-    const preview = document.createElement("div");
-    preview.className = "note-preview";
-    preview.textContent =
-      (note.content || "")
-        .replace(/<[^>]*>/g, "")
-        .slice(0, 120) || "No content";
-
-    const actions = document.createElement("div");
-    actions.style.display = "flex";
-    actions.style.justifyContent = "flex-end";
-    actions.style.gap = "10px";
-    actions.style.marginTop = "8px";
-
-    /* 📌 PIN */
-    const pinBtn = document.createElement("span");
-    pinBtn.innerHTML = note.pinned ? "📌" : "📍";
-    pinBtn.style.fontSize = "20px";
-    pinBtn.style.cursor = "pointer";
-    pinBtn.onclick = e => {
-      e.stopPropagation();
-      togglePin(note.id);
-    };
-
-    /* 🗑️ DELETE */
-    const del = document.createElement("span");
-    del.innerHTML = "🗑️";
-    del.style.cursor = "pointer";
-    del.onclick = e => {
-      e.stopPropagation();
-      deleteNote(note.id);
-    };
-
-    actions.appendChild(pinBtn);
-    actions.appendChild(del);
+    const pin = document.createElement("span");
+    pin.textContent = note.pinned ? " 📌" : "";
+    pin.style.float = "right";
 
     div.appendChild(title);
-    div.appendChild(preview);
-    div.appendChild(actions);
+    div.appendChild(pin);
 
     div.onclick = () => openNote(note.id);
 
@@ -120,49 +85,91 @@ function renderNotesList() {
 }
 
 /* =========================================================
-   ADD NEW NOTE
+   HOME GRID VIEW (NEW)
 ========================================================= */
-function addNewNote() {
-  const title = prompt("Enter note title");
-  if (!title || !title.trim()) return;
+function renderHomeGrid() {
+  const editor = document.querySelector(".editor");
+  editor.innerHTML = "";
 
-  const id = "note-" + Date.now();
-  const now = new Date().toLocaleString();
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(220px,1fr))";
+  grid.style.gap = "15px";
+  grid.style.padding = "20px";
+  grid.style.overflowY = "auto";
 
-  const newNote = {
-    id,
-    title: title.trim(),
-    content: "",
-    updated: now,
-    pinned: false
-  };
+  const ordered = [
+    ...notes.filter(n => n.pinned),
+    ...notes.filter(n => !n.pinned)
+  ];
 
-  notes.unshift(newNote);
-  activeNoteId = id;
+  ordered.forEach(note => {
+    const card = document.createElement("div");
+    card.style.border = "1px solid #ddd";
+    card.style.borderRadius = "12px";
+    card.style.padding = "12px";
+    card.style.background = "#fff";
+    card.style.cursor = "pointer";
 
-  document.getElementById("note-title").value = newNote.title;
-  document.getElementById("rich-editor").innerHTML = "";
+    const t = document.createElement("div");
+    t.innerHTML = `<strong>${note.title || "Untitled"}</strong>`;
+    t.style.marginBottom = "6px";
 
-  renderNotesList();
+    const c = document.createElement("div");
+    c.innerText = (note.content || "")
+      .replace(/<[^>]*>/g, "")
+      .slice(0, 120);
+    c.style.fontSize = "14px";
+    c.style.color = "#555";
+
+    if (note.pinned) {
+      const p = document.createElement("div");
+      p.textContent = "📌";
+      p.style.textAlign = "right";
+      card.appendChild(p);
+    }
+
+    card.appendChild(t);
+    card.appendChild(c);
+
+    card.onclick = () => openNote(note.id);
+
+    grid.appendChild(card);
+  });
+
+  editor.appendChild(grid);
+  currentView = "home";
 }
 
 /* =========================================================
-   OPEN NOTE
+   OPEN NOTE (EDITOR VIEW)
 ========================================================= */
 async function openNote(id) {
   try {
     activeNoteId = id;
-
     const r = await fetch(`${BACKEND_URL}/api/note/${id}`);
     const note = await r.json();
 
-    document.getElementById("note-title").value = note.title || "";
-    document.getElementById("rich-editor").innerHTML = note.content || "";
+    const editor = document.querySelector(".editor");
+    editor.innerHTML = `
+      <div class="editor-header">
+        <div class="icon-btn" onclick="renderHomeGrid()">←</div>
+        <div class="toolbar">
+          <div class="icon-btn" onclick="applyFormat('bold')"><b>B</b></div>
+          <div class="icon-btn" onclick="applyFormat('italic')"><i>I</i></div>
+          <div class="icon-btn" onclick="applyFormat('underline')"><u>U</u></div>
+          <div class="icon-btn" onclick="saveNote()">💾</div>
+        </div>
+      </div>
+      <input id="note-title" value="${note.title || ""}" placeholder="Note title">
+      <div id="rich-editor" contenteditable="true">${note.content || ""}</div>
+    `;
 
-    const local = notes.find(n => n.id === id);
-    if (local) Object.assign(local, note);
+    document.getElementById("note-title").addEventListener("input", autoSave);
+    document.getElementById("rich-editor").addEventListener("input", autoSave);
 
     renderNotesList();
+    currentView = "editor";
 
     if (window.innerWidth <= 768) {
       document.getElementById("sidebar").classList.remove("open");
@@ -171,6 +178,26 @@ async function openNote(id) {
   } catch {
     alert("Failed to load note");
   }
+}
+
+/* =========================================================
+   ADD NEW NOTE
+========================================================= */
+function addNewNote() {
+  const title = prompt("Enter note title");
+  if (!title) return;
+
+  const note = {
+    id: "note-" + Date.now(),
+    title,
+    content: "",
+    pinned: false,
+    updated: new Date().toLocaleString()
+  };
+
+  notes.unshift(note);
+  saveRaw(note);
+  openNote(note.id);
 }
 
 /* =========================================================
@@ -186,14 +213,17 @@ function saveNote(showAlert = true) {
   note.content = document.getElementById("rich-editor").innerHTML;
   note.updated = new Date().toLocaleString();
 
+  saveRaw(note);
+  renderNotesList();
+  if (showAlert) toast("Saved");
+}
+
+function saveRaw(note) {
   fetch(BACKEND_URL + "/api/save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(note)
   });
-
-  renderNotesList();
-  if (showAlert) alert("Note saved successfully");
 }
 
 /* =========================================================
@@ -201,32 +231,7 @@ function saveNote(showAlert = true) {
 ========================================================= */
 function autoSave() {
   clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => saveNote(false), 1200);
-}
-document.getElementById("note-title").addEventListener("input", autoSave);
-document.getElementById("rich-editor").addEventListener("input", autoSave);
-
-/* =========================================================
-   DELETE NOTE
-========================================================= */
-async function deleteNote(id) {
-  if (!confirm("Are you sure you want to delete this note?")) return;
-
-  try {
-    await fetch(`${BACKEND_URL}/api/delete/${id}`, { method: "DELETE" });
-    notes = notes.filter(n => n.id !== id);
-
-    if (activeNoteId === id) {
-      activeNoteId = null;
-      document.getElementById("note-title").value = "";
-      document.getElementById("rich-editor").innerHTML = "";
-    }
-
-    renderNotesList();
-    alert("Note deleted successfully");
-  } catch {
-    alert("Failed to delete note");
-  }
+  autoSaveTimer = setTimeout(() => saveNote(false), 1000);
 }
 
 /* =========================================================
@@ -237,51 +242,32 @@ function togglePin(id) {
   if (!note) return;
 
   note.pinned = !note.pinned;
-  note.updated = new Date().toLocaleString();
-
-  fetch(BACKEND_URL + "/api/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(note)
-  });
-
+  saveRaw(note);
   renderNotesList();
+  renderHomeGrid();
 }
 
 /* =========================================================
-   TEXT FORMATTING
+   TEXT FORMAT
 ========================================================= */
 function applyFormat(cmd) {
-  const editor = document.getElementById("rich-editor");
-  editor.focus();
   document.execCommand(cmd, false, null);
 }
 
 /* =========================================================
-   FIND TEXT
+   TOAST (CUSTOM POPUP)
 ========================================================= */
-function toggleFind() {
-  const box = document.getElementById("findBox");
-  box.style.display = box.style.display === "block" ? "none" : "block";
-}
-
-function findText() {
-  const input = document.getElementById("findInput").value.toLowerCase();
-  const editor = document.getElementById("rich-editor");
-
-  removeHighlights();
-  if (!input) return;
-
-  const regex = new RegExp(`(${input})`, "gi");
-  editor.innerHTML = editor.innerHTML.replace(
-    regex,
-    `<span class="find-highlight">$1</span>`
-  );
-}
-
-function removeHighlights() {
-  const editor = document.getElementById("rich-editor");
-  editor.querySelectorAll(".find-highlight").forEach(span => {
-    span.replaceWith(span.textContent);
-  });
-}
+function toast(msg) {
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.position = "fixed";
+  t.style.bottom = "30px";
+  t.style.right = "30px";
+  t.style.background = "#323232";
+  t.style.color = "#fff";
+  t.style.padding = "12px 18px";
+  t.style.borderRadius = "8px";
+  t.style.zIndex = 9999;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+  }

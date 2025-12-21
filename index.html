@@ -8,199 +8,104 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:Segoe UI, sans-serif;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,sans-serif}
+body{background:#e6e6e6;height:100vh;overflow:hidden}
 
-body{
-  background:#e6e6e6;
-  height:100vh;
-  overflow:hidden;
-}
+/* ===== APP ===== */
+.app-container{width:100%;height:100vh;display:flex;background:#fff}
 
-/* ================= APP LAYOUT ================= */
-.app-container{
-  width:100%;
-  height:100vh;
-  background:#fff;
-  display:flex;
-}
-
-/* ================= SIDEBAR ================= */
+/* ===== SIDEBAR ===== */
 .sidebar{
-  width:280px;
-  background:#f8f9fa;
-  border-right:1px solid #ddd;
-  display:flex;
-  flex-direction:column;
+  width:280px;background:#f8f9fa;border-right:1px solid #ddd;
+  display:flex;flex-direction:column
 }
-
-.logo{
-  padding:20px;
-  font-size:22px;
-  font-weight:bold;
-  color:#0288d1;
-}
-
+.logo{padding:20px;font-size:22px;font-weight:bold;color:#0288d1}
 .add-btn{
-  margin:0 20px 15px;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:#0288d1;
-  color:#fff;
-  font-size:15px;
-  cursor:pointer;
+  margin:0 20px 15px;padding:12px;border:none;border-radius:10px;
+  background:#0288d1;color:#fff;font-size:15px;cursor:pointer
 }
 
+/* ===== NOTES GRID (HOME) ===== */
 .notes-list{
-  flex:1;
-  overflow-y:auto;
-}
-
-/* ================= GRID VIEW (HOME PAGE) ================= */
-.notes-list{
+  flex:1;overflow-y:auto;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:14px;
-  padding:14px;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+  padding:16px;
   align-content:flex-start;
 }
-
 .note-item{
   background:#fff;
-  border-radius:14px;
+  border-radius:16px;
   padding:14px;
-  min-height:140px;
-  cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,.08);
+  min-height:160px;
+  box-shadow:0 6px 18px rgba(0,0,0,.1);
   transition:.15s;
+  cursor:pointer;
   user-select:none;
 }
-
 .note-item:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 22px rgba(0,0,0,.12);
+  transform:translateY(-3px);
+  box-shadow:0 10px 26px rgba(0,0,0,.15);
 }
-
-.note-item.active{
-  outline:2px solid #0288d1;
-}
+.note-item.active{outline:2px solid #0288d1}
 
 .note-preview{
+  margin-top:8px;
   font-size:13px;
   color:#555;
-  margin-top:8px;
-  line-height:1.4;
-  max-height:70px;
+  line-height:1.45;
+  max-height:72px;
   overflow:hidden;
 }
 
-/* ================= EDITOR ================= */
-.editor{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
+/* ===== EDITOR ===== */
+.editor{flex:1;display:flex;flex-direction:column}
 .editor-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:10px 15px;
-  border-bottom:1px solid #ddd;
-  background:#fafafa;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 15px;border-bottom:1px solid #ddd;background:#fafafa
 }
-
-.toolbar{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
-
+.toolbar{display:flex;gap:8px;align-items:center}
 .icon-btn{
-  width:36px;
-  height:36px;
-  border-radius:8px;
-  border:1px solid #ccc;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
+  width:36px;height:36px;border-radius:8px;border:1px solid #ccc;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer
 }
+.icon-btn:hover{background:#e1f5fe}
 
-.icon-btn:hover{
-  background:#e1f5fe;
-}
-
-/* ================= CONNECTION INDICATOR ================= */
+/* ===== CONNECTION INDICATOR ===== */
 #conn-indicator{
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:12px;
-  margin-right:6px;
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;margin-right:6px
 }
-
 .conn-spinner{
-  border:3px solid #aaa;
-  border-top:3px solid #00c853;
-  animation:spin 1s linear infinite;
+  border:3px solid #aaa;border-top:3px solid #00c853;
+  animation:spin 1s linear infinite
 }
-
 .conn-online{
-  background:#00c853;
-  color:#fff;
-  box-shadow:0 0 8px #00c853;
+  background:#00c853;color:#fff;box-shadow:0 0 8px #00c853
 }
-
-@keyframes spin{
-  to{transform:rotate(360deg);}
-}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 #note-title{
-  padding:14px 20px;
-  font-size:22px;
-  border:none;
-  outline:none;
-  border-bottom:1px solid #eee;
+  padding:14px 20px;font-size:22px;border:none;outline:none;
+  border-bottom:1px solid #eee
 }
-
 #rich-editor{
-  flex:1;
-  padding:15px 20px;
-  outline:none;
-  font-size:16px;
-  line-height:1.6;
-  overflow-y:auto;
+  flex:1;padding:15px 20px;outline:none;
+  font-size:16px;line-height:1.6;overflow-y:auto
 }
 
-/* ================= MOBILE ================= */
+/* ===== MOBILE ===== */
 .mobile-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.3);
-  z-index:900;
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.3);z-index:900
 }
-
 @media(max-width:768px){
-  .sidebar{
-    position:absolute;
-    left:-100%;
-    height:100%;
-    z-index:1000;
-    transition:.3s;
-  }
-  .sidebar.open{ left:0; }
-  .mobile-overlay.active{ display:block; }
+  .sidebar{position:absolute;left:-100%;height:100%;z-index:1000;transition:.3s}
+  .sidebar.open{left:0}
+  .mobile-overlay.active{display:block}
 }
 </style>
 </head>
@@ -211,14 +116,14 @@ body{
 
 <div class="app-container">
 
+  <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
-    <div class="logo">
-      <i class="fa-solid fa-cloud"></i> Cloud Notepad
-    </div>
+    <div class="logo"><i class="fa-solid fa-cloud"></i> Cloud Notepad</div>
     <button class="add-btn" onclick="addNewNote()">+ Add Note</button>
     <div class="notes-list" id="notesList"></div>
   </div>
 
+  <!-- EDITOR -->
   <div class="editor">
     <div class="editor-header">
       <div class="icon-btn" onclick="toggleSidebar()">
@@ -227,17 +132,16 @@ body{
 
       <div class="toolbar">
         <span id="conn-indicator" class="conn-spinner"></span>
+        <div class="icon-btn" onclick="toggleFind()"><i class="fa-solid fa-magnifying-glass"></i></div>
         <div class="icon-btn" onclick="applyFormat('bold')"><b>B</b></div>
         <div class="icon-btn" onclick="applyFormat('italic')"><i>I</i></div>
         <div class="icon-btn" onclick="applyFormat('underline')"><u>U</u></div>
-        <div class="icon-btn" onclick="saveNote()">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-        </div>
+        <div class="icon-btn" onclick="saveNote()"><i class="fa-solid fa-cloud-arrow-up"></i></div>
       </div>
     </div>
 
     <input id="note-title" placeholder="Note title">
-    <div id="rich-editor" contenteditable="true">Start typing...</div>
+    <div id="rich-editor" contenteditable="true">Start typing…</div>
   </div>
 
 </div>

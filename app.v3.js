@@ -8,42 +8,6 @@ let activeNoteId = null;
 let autoSaveTimer = null;
 
 /* =========================================================
-   STYLISH TOAST POPUP (CUSTOM)
-========================================================= */
-function showToast(message, type = "success") {
-  const toast = document.createElement("div");
-  toast.textContent = message;
-
-  toast.style.position = "fixed";
-  toast.style.bottom = "25px";
-  toast.style.right = "25px";
-  toast.style.padding = "12px 18px";
-  toast.style.borderRadius = "10px";
-  toast.style.fontSize = "14px";
-  toast.style.color = "#fff";
-  toast.style.zIndex = "9999";
-  toast.style.boxShadow = "0 10px 25px rgba(0,0,0,.25)";
-  toast.style.opacity = "0";
-  toast.style.transform = "translateY(15px)";
-  toast.style.transition = "all .3s ease";
-  toast.style.background =
-    type === "delete" ? "#d32f2f" : "#2e7d32";
-
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.style.opacity = "1";
-    toast.style.transform = "translateY(0)";
-  });
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(15px)";
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-/* =========================================================
    CONNECTION INDICATOR
 ========================================================= */
 const indicator = document.getElementById("conn-indicator");
@@ -100,13 +64,15 @@ function renderNotesList() {
     const div = document.createElement("div");
     div.className =
       "note-item" + (note.id === activeNoteId ? " active" : "");
-    div.style.userSelect = "none"; // 🔴 TEXT SELECTION FIX
+
     div.style.display = "flex";
     div.style.justifyContent = "space-between";
     div.style.alignItems = "center";
+    div.style.userSelect = "none";              // 🔴 FIX: no text selection
 
     const info = document.createElement("div");
     info.style.flex = "1";
+    info.style.userSelect = "none";             // 🔴 FIX: title text not selectable
     info.innerHTML = `
       <strong>${note.title || "Untitled"}</strong><br>
       <small>${note.updated || ""}</small>
@@ -119,6 +85,7 @@ function renderNotesList() {
     pinBtn.style.cursor = "pointer";
     pinBtn.style.fontSize = "22px";
     pinBtn.style.marginRight = "10px";
+    pinBtn.style.userSelect = "none";
 
     pinBtn.onclick = (e) => {
       e.stopPropagation();
@@ -130,6 +97,8 @@ function renderNotesList() {
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
     del.title = "Delete note";
+    del.style.userSelect = "none";
+
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
@@ -185,7 +154,12 @@ async function openNote(id) {
     document.getElementById("rich-editor").innerHTML = note.content || "";
 
     const local = notes.find(n => n.id === id);
-    if (local) Object.assign(local, note);
+    if (local) {
+      local.title = note.title;
+      local.content = note.content;
+      local.pinned = note.pinned;
+      local.updated = note.updated;
+    }
 
     renderNotesList();
 
@@ -218,7 +192,7 @@ function saveNote(showAlert = true) {
   });
 
   renderNotesList();
-  if (showAlert) showToast("✔ Note saved successfully");
+  if (showAlert) alert("Note saved successfully");
 }
 
 /* =========================================================
@@ -235,7 +209,8 @@ document.getElementById("rich-editor").addEventListener("input", autoSave);
    DELETE NOTE
 ========================================================= */
 async function deleteNote(id) {
-  if (!confirm("Are you sure you want to delete this note?")) return;
+  const yes = confirm("Are you sure you want to delete this note?");
+  if (!yes) return;
 
   try {
     await fetch(`${BACKEND_URL}/api/delete/${id}`, { method: "DELETE" });
@@ -248,7 +223,7 @@ async function deleteNote(id) {
     }
 
     renderNotesList();
-    showToast("🗑️ Note deleted successfully", "delete");
+    alert("Note deleted successfully");
   } catch {
     alert("Failed to delete note");
   }
@@ -274,10 +249,11 @@ function togglePin(id) {
 }
 
 /* =========================================================
-   TEXT FORMAT
+   TEXT FORMATTING
 ========================================================= */
 function applyFormat(cmd) {
-  document.getElementById("rich-editor").focus();
+  const editor = document.getElementById("rich-editor");
+  editor.focus();
   document.execCommand(cmd, false, null);
 }
 
@@ -308,4 +284,4 @@ function removeHighlights() {
   editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
-}
+       }

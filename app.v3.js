@@ -6,8 +6,6 @@ const BACKEND_URL = "https://notepad-backend-n5nc.onrender.com";
 let notes = [];
 let activeNoteId = null;
 let autoSaveTimer = null;
-window.activeNoteId = null;
-window.isNewNoteMode = true;
 
 /* =========================================================
    CONNECTION INDICATOR
@@ -52,7 +50,7 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (PINNED ON TOP)
+   RENDER NOTES LIST
 ========================================================= */
 function renderNotesList() {
   const list = document.getElementById("notesList");
@@ -70,37 +68,29 @@ function renderNotesList() {
     div.style.display = "flex";
     div.style.justifyContent = "space-between";
     div.style.alignItems = "center";
-    div.style.userSelect = "none";              // 🔴 FIX: no text selection
+    div.style.userSelect = "none";
 
     const info = document.createElement("div");
     info.style.flex = "1";
-    info.style.userSelect = "none";             // 🔴 FIX: title text not selectable
+    info.style.userSelect = "none";
     info.innerHTML = `
       <strong>${note.title || "Untitled"}</strong><br>
       <small>${note.updated || ""}</small>
     `;
 
-    /* 📌 PIN ICON */
     const pinBtn = document.createElement("span");
     pinBtn.innerHTML = note.pinned ? "📌" : "📍";
-    pinBtn.title = note.pinned ? "Unpin note" : "Pin note";
     pinBtn.style.cursor = "pointer";
     pinBtn.style.fontSize = "22px";
     pinBtn.style.marginRight = "10px";
-    pinBtn.style.userSelect = "none";
-
     pinBtn.onclick = (e) => {
       e.stopPropagation();
       togglePin(note.id);
     };
 
-    /* 🗑️ DELETE */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
-    del.title = "Delete note";
-    del.style.userSelect = "none";
-
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
@@ -116,7 +106,7 @@ function renderNotesList() {
 }
 
 /* =========================================================
-   ADD NEW NOTE
+   ADD NEW NOTE (SIDEBAR)
 ========================================================= */
 function addNewNote() {
   const title = prompt("Enter note title");
@@ -139,6 +129,7 @@ function addNewNote() {
   document.getElementById("note-title").value = newNote.title;
   document.getElementById("rich-editor").innerHTML = "";
 
+  saveNote(false);
   renderNotesList();
 }
 
@@ -167,44 +158,7 @@ async function openNote(id) {
 
     if (window.innerWidth <= 768) {
       document.getElementById("sidebar").classList.remove("open");
-      documfunction saveNote() {
-  const titleInput = document.getElementById("note-title");
-  const editor = document.getElementById("rich-editor");
-
-  const title = titleInput.value.trim();
-  const content = editor.innerHTML.trim();
-
-  if (!title && (!content || content === "Start typing...")) {
-    alert("❗ Please write title or note");
-    return;
-  }
-
-  if (window.activeNoteId === null) {
-    const newNote = {
-      id: Date.now(),
-      title: title || "Untitled",
-      content: content,
-      createdAt: new Date().toISOString()
-    };
-
-    notes.unshift(newNote);
-    window.activeNoteId = newNote.id;
-    window.isNewNoteMode = false;
-
-  } else {
-    const note = notes.find(n => n.id === window.activeNoteId);
-    if (!note) return;
-
-    note.title = title || "Untitled";
-    note.content = content;
-  }
-
-  saveNotesToStorage();
-  renderNotesList();
-
-  alert("✅ Note saved successfully");
-      }
-       ent.getElementById("mobileOverlay").classList.remove("active");
+      document.getElementById("mobileOverlay").classList.remove("active");
     }
   } catch {
     alert("Failed to load note");
@@ -212,9 +166,50 @@ async function openNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE
+   SAVE NOTE (🔥 HOME SCREEN FIX INCLUDED)
 ========================================================= */
+function saveNote(showAlert = true) {
+  const titleEl = document.getElementById("note-title");
+  const editorEl = document.getElementById("rich-editor");
 
+  const title = titleEl.value.trim();
+  const content = editorEl.innerHTML.trim();
+
+  if (!title && !content) return;
+
+  // 🔥 IF NO ACTIVE NOTE → CREATE ONE
+  if (!activeNoteId) {
+    const id = "note-" + Date.now();
+    const now = new Date().toLocaleString();
+
+    const newNote = {
+      id,
+      title: title || "Untitled",
+      content: content,
+      updated: now,
+      pinned: false
+    };
+
+    notes.unshift(newNote);
+    activeNoteId = id;
+  }
+
+  const note = notes.find(n => n.id === activeNoteId);
+  if (!note) return;
+
+  note.title = title || "Untitled";
+  note.content = content;
+  note.updated = new Date().toLocaleString();
+
+  fetch(BACKEND_URL + "/api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(note)
+  });
+
+  renderNotesList();
+  if (showAlert) alert("✅ Note saved successfully");
+}
 
 /* =========================================================
    AUTO SAVE
@@ -305,4 +300,4 @@ function removeHighlights() {
   editor.querySelectorAll(".find-highlight").forEach(span => {
     span.replaceWith(span.textContent);
   });
-       }
+}

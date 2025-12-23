@@ -261,6 +261,51 @@ html, body {
   flex-shrink: 0;
   overflow-y: auto;
 }
+  /* ==== FIX: RICH EDITOR FULL SCROLL + LAST LINE VISIBLE ==== */
+
+#rich-editor {
+  height: 100%;
+  min-height: calc(100vh - 160px); /* toolbar + title ke baad */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 16px 16px 60px 16px; /* 👈 bottom padding IMPORTANT */
+  box-sizing: border-box;
+
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Scrollbar ko clearly visible banane ke liye */
+#rich-editor::-webkit-scrollbar {
+  width: 6px;
+}
+
+#rich-editor::-webkit-scrollbar-thumb {
+  background: #999;
+  border-radius: 10px;
+}
+  /* ==== FIX: PAGE JUMP & TOOLBAR DISAPPEAR ==== */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+}
+
+#editor-container,
+.editor-wrapper,
+.main {
+  height: 100%;
+  overflow: hidden;
+}
+  
 </style>
 </head>
 
@@ -331,6 +376,17 @@ html, body {
       }, 0);
     });
   }
+  </script>
+  <script>
+const editor = document.getElementById("rich-editor");
+
+if (editor) {
+  editor.addEventListener("paste", () => {
+    setTimeout(() => {
+      editor.scrollTop = editor.scrollHeight;
+    }, 0);
+  });
+}
   </script>
 </body>
   

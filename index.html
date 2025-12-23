@@ -279,7 +279,21 @@ html, body {
 #rich-editor.placeholder {
   color: #999;
 }
-  
+
+/* ==== FIX: TOPBAR & SIDEBAR STABILITY ==== */
+
+.topbar,
+.header,
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.sidebar {
+  flex-shrink: 0;
+  overflow-y: auto;
+}
 </style>
 </head>
 

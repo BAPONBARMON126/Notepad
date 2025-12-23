@@ -8,21 +8,19 @@ let activeNoteId = null;
 let autoSaveTimer = null;
 
 /* =========================================================
-   SAVE INDICATOR (SAFE)
+   SAVE INDICATOR
 ========================================================= */
 function showSaving() {
   const el = document.getElementById("save-indicator");
-  if (el) {
-    el.textContent = "⏳ Saving…";
-    el.style.opacity = "1";
-  }
+  if (!el) return;
+  el.textContent = "⏳ Saving…";
+  el.style.opacity = "1";
 }
 function showSaved() {
   const el = document.getElementById("save-indicator");
-  if (el) {
-    el.textContent = "✅ Saved";
-    setTimeout(() => (el.style.opacity = "0"), 1200);
-  }
+  if (!el) return;
+  el.textContent = "✅ Saved";
+  setTimeout(() => (el.style.opacity = "0"), 1200);
 }
 
 /* =========================================================
@@ -52,6 +50,10 @@ function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("mobileOverlay").classList.toggle("active");
 }
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("mobileOverlay").classList.remove("active");
+}
 
 /* =========================================================
    LOAD NOTES
@@ -79,18 +81,42 @@ function renderNotesList() {
   [...pinned, ...normal].forEach(note => {
     const div = document.createElement("div");
     div.className = "note-item" + (note.id === activeNoteId ? " active" : "");
-    div.onclick = () => openNote(note.id);
+    div.style.userSelect = "none";
 
-    div.innerHTML = `
-      <div style="flex:1">
-        <strong>${note.title || "Untitled"}</strong><br>
-        <small>${note.updated || ""}</small>
-      </div>
-      <span onclick="event.stopPropagation();togglePin('${note.id}')">
-        ${note.pinned ? "📌" : "📍"}
-      </span>
-      <span onclick="event.stopPropagation();deleteNote('${note.id}')">🗑️</span>
+    div.onclick = () => {
+      openNote(note.id);
+      if (window.innerWidth <= 900) closeSidebar(); // 🔥 AUTO CLOSE
+    };
+
+    const info = document.createElement("div");
+    info.style.flex = "1";
+    info.innerHTML = `
+      <strong>${note.title || "Untitled"}</strong><br>
+      <small>${note.updated || ""}</small>
     `;
+
+    const pin = document.createElement("span");
+    pin.innerHTML = note.pinned ? "📌" : "📍";
+    pin.style.cursor = "pointer";
+    pin.style.marginRight = "12px";
+    pin.style.userSelect = "none";
+    pin.onclick = (e) => {
+      e.stopPropagation();
+      togglePin(note.id);
+    };
+
+    const del = document.createElement("span");
+    del.innerHTML = "🗑️";
+    del.style.cursor = "pointer";
+    del.style.userSelect = "none";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      deleteNote(note.id);
+    };
+
+    div.appendChild(info);
+    div.appendChild(pin);
+    div.appendChild(del);
     list.appendChild(div);
   });
 }
@@ -100,11 +126,12 @@ function renderNotesList() {
 ========================================================= */
 function addNewNote() {
   const title = prompt("Enter note title");
-  if (!title) return;
+  if (!title || !title.trim()) return;
 
   activeNoteId = null;
-  document.getElementById("note-title").value = title;
+  document.getElementById("note-title").value = title.trim();
   document.getElementById("rich-editor").innerHTML = "";
+  if (window.innerWidth <= 900) closeSidebar();
 }
 
 /* =========================================================
@@ -126,7 +153,7 @@ async function openNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE (FINAL SAFE VERSION)
+   SAVE NOTE (FINAL)
 ========================================================= */
 async function saveNote(showAlert = true) {
   const titleEl = document.getElementById("note-title");
@@ -135,11 +162,14 @@ async function saveNote(showAlert = true) {
   const title = titleEl.value.trim();
   const content = editorEl.innerHTML.trim();
 
-  if (!title && !content) return;
+  if (!title && !content) {
+    alert("❗ First write something");
+    return;
+  }
 
   showSaving();
 
-  // CREATE NOTE IF NONE ACTIVE
+  // CREATE IF NONE
   if (!activeNoteId) {
     const newNote = {
       id: "note-" + Date.now(),
@@ -171,7 +201,7 @@ async function saveNote(showAlert = true) {
 }
 
 /* =========================================================
-   AUTO SAVE (SAFE)
+   AUTO SAVE
 ========================================================= */
 function autoSave() {
   clearTimeout(autoSaveTimer);
@@ -187,7 +217,11 @@ async function deleteNote(id) {
   if (!confirm("Delete note?")) return;
   await fetch(`${BACKEND_URL}/api/delete/${id}`, { method: "DELETE" });
   notes = notes.filter(n => n.id !== id);
-  if (activeNoteId === id) activeNoteId = null;
+  if (activeNoteId === id) {
+    activeNoteId = null;
+    document.getElementById("note-title").value = "";
+    document.getElementById("rich-editor").innerHTML = "";
+  }
   renderNotesList();
 }
 
@@ -196,4 +230,4 @@ function togglePin(id) {
   if (!note) return;
   note.pinned = !note.pinned;
   saveNote(false);
-                     }
+                             }

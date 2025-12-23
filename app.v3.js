@@ -6,6 +6,8 @@ const BACKEND_URL = "https://notepad-backend-n5nc.onrender.com";
 let notes = [];
 let activeNoteId = null;
 let autoSaveTimer = null;
+window.activeNoteId = null;
+window.isNewNoteMode = true;
 
 /* =========================================================
    CONNECTION INDICATOR
@@ -165,7 +167,44 @@ async function openNote(id) {
 
     if (window.innerWidth <= 768) {
       document.getElementById("sidebar").classList.remove("open");
-      document.getElementById("mobileOverlay").classList.remove("active");
+      documfunction saveNote() {
+  const titleInput = document.getElementById("note-title");
+  const editor = document.getElementById("rich-editor");
+
+  const title = titleInput.value.trim();
+  const content = editor.innerHTML.trim();
+
+  if (!title && (!content || content === "Start typing...")) {
+    alert("❗ Please write title or note");
+    return;
+  }
+
+  if (window.activeNoteId === null) {
+    const newNote = {
+      id: Date.now(),
+      title: title || "Untitled",
+      content: content,
+      createdAt: new Date().toISOString()
+    };
+
+    notes.unshift(newNote);
+    window.activeNoteId = newNote.id;
+    window.isNewNoteMode = false;
+
+  } else {
+    const note = notes.find(n => n.id === window.activeNoteId);
+    if (!note) return;
+
+    note.title = title || "Untitled";
+    note.content = content;
+  }
+
+  saveNotesToStorage();
+  renderNotesList();
+
+  alert("✅ Note saved successfully");
+      }
+       ent.getElementById("mobileOverlay").classList.remove("active");
     }
   } catch {
     alert("Failed to load note");
@@ -175,46 +214,7 @@ async function openNote(id) {
 /* =========================================================
    SAVE NOTE
 ========================================================= */
-function saveNote() {
-  const titleInput = document.getElementById("note-title");
-  const editor = document.getElementById("rich-editor");
 
-  const title = titleInput.value.trim();
-  const content = editor.innerHTML.trim();
-
-  // empty check
-  if (!title && (!content || content === "Start typing...")) {
-    alert("Title or content likho");
-    return;
-  }
-
-  // 🔥 IMPORTANT FIX
-  // agar koi active note hi nahi hai
-  if (!window.activeNoteId) {
-    // naya note create karo
-    const newNote = {
-      id: Date.now(),
-      title: title || "Untitled",
-      content: content,
-      createdAt: new Date().toISOString()
-    };
-
-    notes.push(newNote);          // notes array
-    window.activeNoteId = newNote.id;
-
-  } else {
-    // existing note update
-    const note = notes.find(n => n.id === window.activeNoteId);
-    if (note) {
-      note.title = title || "Untitled";
-      note.content = content;
-    }
-  }
-
-  saveNotesToStorage(); // tumhara existing save logic
-  renderNotesList(); // sidebar refresh
-   alert("✅ Note saved successfully");
-}
 
 /* =========================================================
    AUTO SAVE

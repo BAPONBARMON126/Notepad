@@ -1,7 +1,7 @@
 {
   "id": "note-1766501337451",
   "title": "test",
-  "content": "&lt;script&gt;\nconst editorFix = document.getElementById(\"rich-editor\");\n\nif (editorFix) {\n  editorFix.addEventListener(\"input\", () =&gt; {\n    editorFix.scrollTop = editorFix.scrollHeight;\n  });\n}\n&lt;/script&gt;",
-  "updated": "23/12/2025, 20:18:57",
+  "content": "&lt;script&gt;\nconst editorFix = document.getElementById(\"rich-editor\");\n\nif (editorFix) {\n  editorFix.addEventListener(\"input\", () =&gt; {\n    editorFix.scrollTop = editorFix.scrollHeight;\n  });\n}\n&lt;/script&gt;<div><br></div>",
+  "updated": "23/12/2025, 20:19:17",
   "pinned": false
 }

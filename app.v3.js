@@ -44,7 +44,7 @@ pingBackend();
 setInterval(pingBackend, 25000);
 
 /* =========================================================
-   SIDEBAR (MOBILE)
+   SIDEBAR
 ========================================================= */
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
@@ -70,7 +70,7 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST (📌 LEFT | 🗑️ RIGHT)
+   RENDER NOTES LIST (TITLE TOP, PIN–DATE–DELETE BELOW)
 ========================================================= */
 function renderNotesList() {
   const list = document.getElementById("notesList");
@@ -81,48 +81,57 @@ function renderNotesList() {
   [...pinned, ...normal].forEach(note => {
     const row = document.createElement("div");
     row.className = "note-item" + (note.id === activeNoteId ? " active" : "");
-    row.style.display = "flex";
-    row.style.alignItems = "center";
     row.style.userSelect = "none";
+    row.style.padding = "8px 10px";
 
     row.onclick = () => {
       openNote(note.id);
       if (window.innerWidth <= 900) closeSidebar();
     };
 
-    /* 📌 PIN (LEFT) */
+    /* TITLE */
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${note.title || "Untitled"}</strong>`;
+
+    /* META ROW */
+    const meta = document.createElement("div");
+    meta.style.display = "flex";
+    meta.style.alignItems = "center";
+    meta.style.justifyContent = "space-between";
+    meta.style.marginTop = "4px";
+    meta.style.fontSize = "12px";
+    meta.style.opacity = "0.8";
+
+    /* PIN (LEFT) */
     const pin = document.createElement("span");
     pin.innerHTML = note.pinned ? "📌" : "📍";
     pin.style.cursor = "pointer";
-    pin.style.marginRight = "10px";
     pin.style.userSelect = "none";
     pin.onclick = (e) => {
       e.stopPropagation();
-      togglePin(note.id);
+      togglePinOnly(note.id);
     };
 
-    /* INFO (CENTER) */
-    const info = document.createElement("div");
-    info.style.flex = "1";
-    info.innerHTML = `
-      <strong>${note.title || "Untitled"}</strong><br>
-      <small>${note.updated || ""}</small>
-    `;
+    /* DATE (CENTER) */
+    const date = document.createElement("span");
+    date.textContent = note.updated || "";
 
-    /* 🗑️ DELETE (RIGHT) */
+    /* DELETE (RIGHT) */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
-    del.style.marginLeft = "10px";
     del.style.userSelect = "none";
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
     };
 
-    row.appendChild(pin);
-    row.appendChild(info);
-    row.appendChild(del);
+    meta.appendChild(pin);
+    meta.appendChild(date);
+    meta.appendChild(del);
+
+    row.appendChild(title);
+    row.appendChild(meta);
     list.appendChild(row);
   });
 }
@@ -159,7 +168,7 @@ async function openNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE
+   SAVE NOTE (ONLY FOR SAVE BUTTON / AUTOSAVE)
 ========================================================= */
 async function saveNote(showAlert = true) {
   const titleEl = document.getElementById("note-title");
@@ -179,7 +188,7 @@ async function saveNote(showAlert = true) {
     const newNote = {
       id: "note-" + Date.now(),
       title: title || "Untitled",
-      content: content,
+      content,
       updated: new Date().toLocaleString(),
       pinned: false
     };
@@ -216,7 +225,7 @@ document.getElementById("note-title").addEventListener("input", autoSave);
 document.getElementById("rich-editor").addEventListener("input", autoSave);
 
 /* =========================================================
-   DELETE / PIN
+   DELETE
 ========================================================= */
 async function deleteNote(id) {
   if (!confirm("Delete note?")) return;
@@ -230,9 +239,21 @@ async function deleteNote(id) {
   renderNotesList();
 }
 
-function togglePin(id) {
+/* =========================================================
+   PIN / UNPIN (NO SAVE WARNING)
+========================================================= */
+async function togglePinOnly(id) {
   const note = notes.find(n => n.id === id);
   if (!note) return;
+
   note.pinned = !note.pinned;
-  saveNote(false);
-       }
+  note.updated = new Date().toLocaleString();
+
+  await fetch(BACKEND_URL + "/api/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(note)
+  });
+
+  renderNotesList();
+}

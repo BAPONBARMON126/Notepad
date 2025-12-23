@@ -294,6 +294,30 @@ html, body {
   flex-shrink: 0;
   overflow-y: auto;
 }
+  /* ===== FIX: LONG TEXT LAST LINE VISIBLE ===== */
+
+#rich-editor {
+  height: 100%;
+  min-height: calc(100vh - 170px); /* toolbar + title space */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 16px 16px 80px 16px; /* 👈 bottom padding KEY */
+  box-sizing: border-box;
+
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+/* Scrollbar clearly visible */
+#rich-editor::-webkit-scrollbar {
+  width: 6px;
+}
+#rich-editor::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 10px;
+}
 </style>
 </head>
 
@@ -399,6 +423,15 @@ editor.addEventListener("blur", () => {
     editor.classList.add("placeholder");
   }
 });
+  </script>
+  <script>
+const editorFix = document.getElementById("rich-editor");
+
+if (editorFix) {
+  editorFix.addEventListener("input", () => {
+    editorFix.scrollTop = editorFix.scrollHeight;
+  });
+}
   </script>
 </body>
   

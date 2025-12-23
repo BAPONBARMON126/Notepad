@@ -305,6 +305,10 @@ html, body {
   height: 100%;
   overflow: hidden;
 }
+  /* Placeholder look */
+#rich-editor.placeholder {
+  color: #999;
+}
   
 </style>
 </head>
@@ -387,6 +391,31 @@ if (editor) {
     }, 0);
   });
 }
+  </script>
+  <script>
+const editor = document.getElementById("rich-editor");
+const placeholderText = "Start typing...";
+
+// page load par
+if (editor.innerText.trim() === placeholderText) {
+  editor.classList.add("placeholder");
+}
+
+// click / focus par placeholder hata do
+editor.addEventListener("focus", () => {
+  if (editor.innerText.trim() === placeholderText) {
+    editor.innerText = "";
+    editor.classList.remove("placeholder");
+  }
+});
+
+// agar user bina kuchh likhe bahar chala gaya
+editor.addEventListener("blur", () => {
+  if (editor.innerText.trim() === "") {
+    editor.innerText = placeholderText;
+    editor.classList.add("placeholder");
+  }
+});
   </script>
 </body>
   

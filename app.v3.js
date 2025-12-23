@@ -70,7 +70,7 @@ async function loadNotes() {
 loadNotes();
 
 /* =========================================================
-   RENDER NOTES LIST
+   RENDER NOTES LIST (📌 LEFT | 🗑️ RIGHT)
 ========================================================= */
 function renderNotesList() {
   const list = document.getElementById("notesList");
@@ -79,15 +79,29 @@ function renderNotesList() {
   const pinned = notes.filter(n => n.pinned);
   const normal = notes.filter(n => !n.pinned);
   [...pinned, ...normal].forEach(note => {
-    const div = document.createElement("div");
-    div.className = "note-item" + (note.id === activeNoteId ? " active" : "");
-    div.style.userSelect = "none";
+    const row = document.createElement("div");
+    row.className = "note-item" + (note.id === activeNoteId ? " active" : "");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.userSelect = "none";
 
-    div.onclick = () => {
+    row.onclick = () => {
       openNote(note.id);
-      if (window.innerWidth <= 900) closeSidebar(); // 🔥 AUTO CLOSE
+      if (window.innerWidth <= 900) closeSidebar();
     };
 
+    /* 📌 PIN (LEFT) */
+    const pin = document.createElement("span");
+    pin.innerHTML = note.pinned ? "📌" : "📍";
+    pin.style.cursor = "pointer";
+    pin.style.marginRight = "10px";
+    pin.style.userSelect = "none";
+    pin.onclick = (e) => {
+      e.stopPropagation();
+      togglePin(note.id);
+    };
+
+    /* INFO (CENTER) */
     const info = document.createElement("div");
     info.style.flex = "1";
     info.innerHTML = `
@@ -95,34 +109,26 @@ function renderNotesList() {
       <small>${note.updated || ""}</small>
     `;
 
-    const pin = document.createElement("span");
-    pin.innerHTML = note.pinned ? "📌" : "📍";
-    pin.style.cursor = "pointer";
-    pin.style.marginRight = "12px";
-    pin.style.userSelect = "none";
-    pin.onclick = (e) => {
-      e.stopPropagation();
-      togglePin(note.id);
-    };
-
+    /* 🗑️ DELETE (RIGHT) */
     const del = document.createElement("span");
     del.innerHTML = "🗑️";
     del.style.cursor = "pointer";
+    del.style.marginLeft = "10px";
     del.style.userSelect = "none";
     del.onclick = (e) => {
       e.stopPropagation();
       deleteNote(note.id);
     };
 
-    div.appendChild(info);
-    div.appendChild(pin);
-    div.appendChild(del);
-    list.appendChild(div);
+    row.appendChild(pin);
+    row.appendChild(info);
+    row.appendChild(del);
+    list.appendChild(row);
   });
 }
 
 /* =========================================================
-   ADD NEW NOTE (SIDEBAR)
+   ADD NEW NOTE
 ========================================================= */
 function addNewNote() {
   const title = prompt("Enter note title");
@@ -153,7 +159,7 @@ async function openNote(id) {
 }
 
 /* =========================================================
-   SAVE NOTE (FINAL)
+   SAVE NOTE
 ========================================================= */
 async function saveNote(showAlert = true) {
   const titleEl = document.getElementById("note-title");
@@ -169,7 +175,6 @@ async function saveNote(showAlert = true) {
 
   showSaving();
 
-  // CREATE IF NONE
   if (!activeNoteId) {
     const newNote = {
       id: "note-" + Date.now(),
@@ -230,4 +235,4 @@ function togglePin(id) {
   if (!note) return;
   note.pinned = !note.pinned;
   saveNote(false);
-                             }
+       }

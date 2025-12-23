@@ -210,6 +210,57 @@ body{
     display:block;
   }
 }
+  /* ==== FIX: LONG TEXT PASTE OVERFLOW ==== */
+
+.notepad-container {
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.notepad-editor,
+textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+  /* ==== FIX: LAYOUT JUMP PREVENT ==== */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.main,
+.content,
+.editor-wrapper {
+  height: 100%;
+  overflow: hidden;
+}
+  /* ==== FIX: INTERNAL SCROLL ENABLE ==== */
+
+.notepad-editor {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+  /* ==== FIX: TOPBAR & SIDEBAR STABILITY ==== */
+
+.topbar,
+.header,
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.sidebar {
+  flex-shrink: 0;
+  overflow-y: auto;
+}
 </style>
 </head>
 
@@ -271,5 +322,16 @@ body{
 
 <script src="config.js"></script>
 <script src="app.v3.js"></script>
+  <script>
+  const ed = document.querySelector("textarea, .notepad-editor");
+  if (ed) {
+    ed.addEventListener("paste", () => {
+      setTimeout(() => {
+        ed.scrollTop = ed.scrollHeight;
+      }, 0);
+    });
+  }
+  </script>
 </body>
+  
 </html>

@@ -175,24 +175,45 @@ async function openNote(id) {
 /* =========================================================
    SAVE NOTE
 ========================================================= */
-function saveNote(showAlert = true) {
-  if (!activeNoteId) return;
+function saveNote() {
+  const titleInput = document.getElementById("note-title");
+  const editor = document.getElementById("rich-editor");
 
-  const note = notes.find(n => n.id === activeNoteId);
-  if (!note) return;
+  const title = titleInput.value.trim();
+  const content = editor.innerHTML.trim();
 
-  note.title = document.getElementById("note-title").value;
-  note.content = document.getElementById("rich-editor").innerHTML;
-  note.updated = new Date().toLocaleString();
+  // empty check
+  if (!title && (!content || content === "Start typing...")) {
+    alert("Title or content likho");
+    return;
+  }
 
-  fetch(BACKEND_URL + "/api/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(note)
-  });
+  // 🔥 IMPORTANT FIX
+  // agar koi active note hi nahi hai
+  if (!window.activeNoteId) {
+    // naya note create karo
+    const newNote = {
+      id: Date.now(),
+      title: title || "Untitled",
+      content: content,
+      createdAt: new Date().toISOString()
+    };
 
-  renderNotesList();
-  if (showAlert) alert("Note saved successfully");
+    notes.push(newNote);          // notes array
+    window.activeNoteId = newNote.id;
+
+  } else {
+    // existing note update
+    const note = notes.find(n => n.id === window.activeNoteId);
+    if (note) {
+      note.title = title || "Untitled";
+      note.content = content;
+    }
+  }
+
+  saveNotesToStorage(); // tumhara existing save logic
+  renderNotesList(); // sidebar refresh
+   alert("✅ Note saved successfully");
 }
 
 /* =========================================================

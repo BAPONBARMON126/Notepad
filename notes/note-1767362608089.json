@@ -1,7 +1,7 @@
 {
   "id": "note-1767362608089",
   "title": "NHPC note",
-  "content": "1.If NHPC order Directly come from sales then you have to type Storage Location : SA01 and batch : LAN-0126<div> </div><div>If you create NHPC inter Unit Shipment then you have to type Storage Location : SA01 and batch : LCW-0126.</div><div><br></div><div>Note : always </div>",
-  "updated": "02/01/2026, 19:37:23",
+  "content": "1.If NHPC order Directly come from sales then you have to type Storage Location : SA01 and batch : LAN-0126<div> </div><div>If you create NHPC inter Unit Shipment then you have to type Storage Location : SA01 and batch : LCW-0126.</div><div><br></div><div>Note : always NH</div>",
+  "updated": "02/01/2026, 19:37:25",
   "pinned": false
 }

@@ -1,7 +1,7 @@
 {
   "id": "note-1767363157749",
   "title": "ZASS MRP",
-  "content": "How to find ZMRP or ZASS or Assessable Value ?<div><br></div><div><br></div><div>tips :</div><div><br></div><div><br></div><div>1. Go to NME21N and select Depot STO-MRP,  select supplying plant 3300 or 3307</div><div>     purch org. LONE, purch group PGN, company code 3000, </div><div>2. Select any material code and any PO quantity, and plant code Like  storage location SA01 and requester name and press enter button,</div><div>3. Go to condition tab. here you check or find your ZASS or Assessable Value.</div>",
-  "updated": "02/01/2026, 19:42:37",
+  "content": "How to find ZMRP or ZASS or Assessable Value ?<div><br></div><div><br></div><div>tips </div><div>1. Go to NME21N and select Depot STO-MRP,  select supplying plant 3300 or 3307</div><div>     purch org. LONE, purch group PGN, company code 3000, </div><div>2. Select any material code and any PO quantity, and plant code Like  storage location SA01 and requester name and press enter button,</div><div>3. Go to condition tab. here you check or find your ZASS or Assessable Value.</div>",
+  "updated": "02/01/2026, 19:42:43",
   "pinned": false
 }

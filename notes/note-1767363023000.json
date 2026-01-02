@@ -1,0 +1,7 @@
+{
+  "id": "note-1767363023000",
+  "title": "RAKE GRN",
+  "content": "How to do GRN for rake vehicle ?<div><br></div><div><br></div><div>Tips : </div><div><br></div><div><br></div><div>(Remember vehicle must be invoiced from plant)</div><div><br></div><div><br></div><div> 1. 1st go to /NYMB5TN  and type receiving plant F016 then click on execute.</div><div> 2. Download or export all data in excel sheet.</div><div> 3. Now  go to /NZSD46 hit enter and tick on  inbound truck/rake details, and click on execute button.</div><div> 4. Select plant here F016 and click Create button.</div><div> 5. Paste here shipment number and truck number from previously downloaded from excel sheet, and then click on save button.</div><div> 6. Now go to /NZSD_GRN_N  type here delivery number from excel and click execute.</div><div> 7. Paste here delivery number from excel book and click on execute button.</div><div> 8. Type handling type  \"ZUNL\"  type quantity as you se on delivery number. type shipping  \"ZA\"</div><div> 9. Now select storage location \"SA01 Salable stock\" . type vehicle number as see on delivery number.</div><div>10.Type token/RR no \"0\" press enter and then click on Process button.   Done</div>",
+  "updated": "02/01/2026, 19:40:23",
+  "pinned": false
+}

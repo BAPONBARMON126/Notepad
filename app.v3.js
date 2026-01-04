@@ -1,7 +1,7 @@
 /* =========================================================
    CONFIG
 ========================================================= */
-const BACKEND_URL = "https://notepad-backend-n5nc.onrender.com";
+const BACKEND_URL = "https://notepad-backend-delta.vercel.app/";
 
 let notes = [];
 let activeNoteId = null;
